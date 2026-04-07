@@ -10,9 +10,22 @@
 		AE7B86A92F8593FA00487A85 /* Resonance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Resonance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AE7B86B82F85976500487A85 /* Exceptions for "Resonance" folder in "Resonance" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AE7B86A82F8593FA00487A85 /* Resonance */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AE7B86AB2F8593FA00487A85 /* Resonance */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AE7B86B82F85976500487A85 /* Exceptions for "Resonance" folder in "Resonance" target */,
+			);
 			path = Resonance;
 			sourceTree = "<group>";
 		};
@@ -256,6 +269,8 @@
 				DEVELOPMENT_TEAM = J8B37RB4S6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Resonance/Info.plist;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Resonance need access to Apple Music library";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +303,8 @@
 				DEVELOPMENT_TEAM = J8B37RB4S6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Resonance/Info.plist;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Resonance need access to Apple Music library";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
