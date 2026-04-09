@@ -5,12 +5,28 @@ import SwiftUI
 import MusicKit
 
 struct ContentView: View {
-    
+    @State private var isSheetpresented: Bool = false
     var body: some View {
         VStack{
+            HStack{
+                Button{
+                    isSheetpresented.toggle()
+                }label: {
+                    Text("run sheet")
+                        .foregroundStyle(Color.white)
+                        .padding(10)
+                        .background(Color.orange)
+                        .cornerRadius(10)
+                }
+            }
+            .sheet(isPresented: $isSheetpresented){
+                MusicChartView()
+            }
+         
+            
             
             makeBtn(btnText: "testResponse", color: .green)
-                
+            
             
             Button{
                 print("button tapped")
@@ -55,11 +71,11 @@ struct ContentView: View {
         let request = MusicDataRequest(urlRequest: urlRequest)
         let response = try await request.response()
         
-        print(response.description) 
+        print(response.description)
     }
     func makeBtn(btnText: String,color: Color) -> some View {
         Button{
-            Task {try await fetchMyData()}
+            Task {try await fetchany()}
         }label: {
             Text(btnText)
                 .foregroundStyle(.white)
@@ -68,6 +84,14 @@ struct ContentView: View {
                 .cornerRadius(10)
         }
         
+    }
+    func fetchany() async throws {
+        let request = MusicCatalogChartsRequest(
+            kinds: [.dailyGlobalTop],
+            types: [Song.self]
+        )
+        let response = try await request.response()
+        print("\(response.playlistCharts)")
     }
 }
 
