@@ -10,6 +10,19 @@ struct ContentView: View {
         VStack{
             HStack{
                 Button{
+                    Task{
+                        await fetchmyListeningHistory()
+                    }
+                }label: {
+                    Text("see listening history")
+                        .foregroundStyle(Color.white)
+                        .padding(10)
+                        .background(Color.purple)
+                        .cornerRadius(10)
+                }
+            }
+            HStack{
+                Button{
                     isSheetpresented.toggle()
                 }label: {
                     Text("run sheet")
@@ -92,6 +105,14 @@ struct ContentView: View {
         )
         let response = try await request.response()
         print("\(response.playlistCharts)")
+    }
+    
+    func fetchmyListeningHistory() async {
+        let request = MusicRecentlyPlayedRequest<Song>()
+        let response = try? await request.response()
+        response?.items.forEach {item in
+            print(item.artistName)
+        }
     }
 }
 
