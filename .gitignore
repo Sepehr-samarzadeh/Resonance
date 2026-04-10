@@ -63,3 +63,7 @@ playground.xcworkspace
 
 # Swift Package Manager
 # Package.resolved
+
+### Secrets / Firebase
+GoogleService-Info.plist
+GoogleService-Info-*.plist
