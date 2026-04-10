@@ -9,6 +9,7 @@ import UserNotifications
 
 // MARK: - AppDelegate
 
+@Observable
 class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
 
     // MARK: - Properties
@@ -16,9 +17,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     /// Shared notification service — injected from ServiceContainer after launch.
     var notificationService: NotificationService?
 
-    /// Closure called when a notification deep-link is tapped.
-    /// Set by ResonanceApp to navigate to the correct screen.
-    var onDeepLink: (@Sendable (DeepLink) -> Void)?
+    /// Deep-link that should be navigated to. Set when a notification is tapped.
+    /// Observed by `MainTabView` to drive navigation.
+    var pendingDeepLink: DeepLink?
 
     // MARK: - App Launch
 
@@ -105,16 +106,16 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         let userInfo = response.notification.request.content.userInfo
 
         if let matchId = userInfo["matchId"] as? String {
-            onDeepLink?(.chat(matchId: matchId))
+            await MainActor.run { pendingDeepLink = .chat(matchId: matchId) }
         } else if let type = userInfo["type"] as? String, type == "match" {
-            onDeepLink?(.matches)
+            await MainActor.run { pendingDeepLink = .matches }
         }
     }
 }
 
 // MARK: - DeepLink
 
-enum DeepLink: Sendable {
+enum DeepLink: Sendable, Equatable {
     case chat(matchId: String)
     case matches
 }

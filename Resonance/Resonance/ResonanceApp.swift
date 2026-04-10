@@ -24,7 +24,7 @@ struct ResonanceApp: App {
         WindowGroup {
             Group {
                 if let authViewModel {
-                    RootView(authViewModel: authViewModel)
+                    RootView(authViewModel: authViewModel, appDelegate: appDelegate)
                 } else {
                     ProgressView()
                 }
@@ -53,6 +53,7 @@ struct RootView: View {
     // MARK: - Properties
 
     @State var authViewModel: AuthViewModel
+    let appDelegate: AppDelegate
     @AppStorage(Constants.StorageKeys.hasCompletedOnboarding) private var onboardingCompleted = false
 
     // MARK: - Body
@@ -61,7 +62,7 @@ struct RootView: View {
         Group {
             if authViewModel.isSignedIn {
                 if onboardingCompleted {
-                    MainTabView(authViewModel: authViewModel)
+                    MainTabView(authViewModel: authViewModel, appDelegate: appDelegate)
                 } else {
                     OnboardingView {
                         onboardingCompleted = true
@@ -85,17 +86,19 @@ struct MainTabView: View {
 
     @Environment(\.services) private var services
     @State var authViewModel: AuthViewModel
+    let appDelegate: AppDelegate
     @State private var playerViewModel: PlayerViewModel?
     @State private var matchViewModel: MatchViewModel?
     @State private var selectedTab = 0
     @State private var showPlayer = false
 
+    /// Navigation paths for programmatic navigation
+    @State private var matchesNavPath = NavigationPath()
+    @State private var messagesNavPath = NavigationPath()
+
     /// Match notification overlay state
     @State private var pendingMatchNotification: Match?
     @State private var matchNotificationUserName: String?
-
-    /// Deep-link navigation state
-    @State private var deepLinkMatchId: String?
 
     private var currentUserId: String {
         authViewModel.currentUser?.id ?? ""
@@ -149,7 +152,7 @@ struct MainTabView: View {
                 }
 
                 Tab(String(localized: "Matches"), systemImage: "person.2.fill", value: 2) {
-                    NavigationStack {
+                    NavigationStack(path: $matchesNavPath) {
                         if let matchViewModel {
                             MatchFeedView(viewModel: matchViewModel, currentUserId: currentUserId)
                                 .navigationDestination(for: Match.self) { match in
@@ -163,7 +166,7 @@ struct MainTabView: View {
                 }
 
                 Tab(String(localized: "Messages"), systemImage: "bubble.left.and.bubble.right.fill", value: 3) {
-                    NavigationStack {
+                    NavigationStack(path: $messagesNavPath) {
                         if let matchViewModel {
                             ChatListView(viewModel: matchViewModel, currentUserId: currentUserId)
                                 .navigationDestination(for: Match.self) { match in
@@ -216,7 +219,32 @@ struct MainTabView: View {
         .onChange(of: playerViewModel.currentSong) { _, newSong in
             handleSongChange(newSong, playerViewModel: playerViewModel)
         }
+        .onChange(of: appDelegate.pendingDeepLink) { _, deepLink in
+            guard let deepLink else { return }
+            handleDeepLink(deepLink)
+            appDelegate.pendingDeepLink = nil
+        }
         .animation(.spring(duration: 0.4), value: pendingMatchNotification != nil)
+    }
+
+    // MARK: - Deep Link Handling
+
+    /// Navigates to the appropriate screen based on a deep-link.
+    private func handleDeepLink(_ deepLink: DeepLink) {
+        switch deepLink {
+        case .chat(let matchId):
+            // Switch to Messages tab and fetch the match to push it
+            selectedTab = 3
+            messagesNavPath = NavigationPath()
+            Task {
+                if let match = try? await services.matchService.fetchMatch(id: matchId) {
+                    messagesNavPath.append(match)
+                }
+            }
+        case .matches:
+            selectedTab = 2
+            matchesNavPath = NavigationPath()
+        }
     }
 
     // MARK: - Song Change Handling

@@ -171,6 +171,16 @@ actor MatchService {
 
     // MARK: - Fetch Matches
 
+    /// Fetches a single match by its document ID.
+    /// - Parameter id: The match document ID.
+    /// - Returns: The `Match` if found, or `nil`.
+    func fetchMatch(id: String) async throws -> Match? {
+        let doc = try await db.collection(matchesCollection).document(id).getDocument()
+        guard doc.exists, var dict = doc.data() else { return nil }
+        dict["id"] = doc.documentID
+        return decodeFromDictOptional(Match.self, from: dict)
+    }
+
     /// Fetches all matches for a given user.
     /// - Parameter userId: The user's ID.
     /// - Returns: An array of `Match` documents involving the user.
