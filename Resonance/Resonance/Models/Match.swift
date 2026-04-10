@@ -6,7 +6,7 @@ import FirebaseFirestore
 
 // MARK: - Match
 
-struct Match: Codable, Identifiable, Sendable {
+struct Match: Codable, Identifiable, Sendable, Hashable {
     @DocumentID var id: String?
     var userIds: [String]
     var matchType: MatchType
@@ -25,7 +25,7 @@ enum MatchType: String, Codable, Sendable {
 
 // MARK: - TriggerSong
 
-struct TriggerSong: Codable, Sendable {
+struct TriggerSong: Codable, Sendable, Hashable {
     var id: String
     var name: String
     var artistName: String
@@ -33,7 +33,7 @@ struct TriggerSong: Codable, Sendable {
 
 // MARK: - TriggerArtist
 
-struct TriggerArtist: Codable, Sendable {
+struct TriggerArtist: Codable, Sendable, Hashable {
     var id: String
     var name: String
 }
