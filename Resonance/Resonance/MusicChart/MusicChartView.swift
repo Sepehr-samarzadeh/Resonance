@@ -1,41 +1,66 @@
+//  MusicChartView.swift
+//  Resonance
+
 import SwiftUI
 import MusicKit
+
+// MARK: - MusicChartView
+
 struct MusicChartView: View {
-    @StateObject private var viewModel = MusicChartViewModel()
+
+    // MARK: - Properties
+
+    @State private var viewModel = MusicChartViewModel()
+
+    // MARK: - Body
+
     var body: some View {
         ScrollView {
-            VStack {
+            LazyVStack(spacing: 12) {
                 if viewModel.isLoading {
                     ProgressView()
+                        .padding()
                 }
+
                 ForEach(viewModel.songCharts) { songChart in
                     ForEach(songChart.items) { song in
-                        HStack {
-                            if let artwork = song.artwork {
-                                ArtworkImage(artwork,width: 60)
-                                    .cornerRadius(10)
-                                    .padding(10)
-                                Spacer()
-                                Text(song.artistName)
-                                    .font(.caption)
-                                    .fontWeight(.regular)
-                                    .foregroundColor(.secondary)
-                                    .padding(10)
-                                Text(song.title)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                                    .lineLimit(2)
-                                    .padding(10)
-                            }
-                            
-                        }
+                        songRow(song)
                     }
                 }
             }
-            .task {
-                await viewModel.fetchCharts()
-            }
+            .padding()
         }
+        .navigationTitle(String(localized: "Top Charts"))
+        .task {
+            await viewModel.fetchCharts()
+        }
+    }
+
+    // MARK: - Song Row
+
+    @ViewBuilder
+    private func songRow(_ song: Song) -> some View {
+        HStack(spacing: 12) {
+            if let artwork = song.artwork {
+                ArtworkImage(artwork, width: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(song.title)
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(song.artistName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 4)
     }
 }

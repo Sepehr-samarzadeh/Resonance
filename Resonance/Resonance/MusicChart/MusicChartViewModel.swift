@@ -1,23 +1,36 @@
+//  MusicChartViewModel.swift
+//  Resonance
+
 import Foundation
 import MusicKit
-internal import Combine
 
+// MARK: - MusicChartViewModel
 
-class MusicChartViewModel: ObservableObject {
-    @Published var songCharts: [MusicCatalogChart<Song>] = []
-    @Published var isLoading: Bool = false
-    @Published var error: Error?
+@MainActor
+@Observable
+final class MusicChartViewModel {
 
+    // MARK: - Properties
+
+    var songCharts: [MusicCatalogChart<Song>] = []
+    var isLoading = false
+    var errorMessage: String?
+
+    private let musicService = MusicService()
+
+    // MARK: - Fetch Charts
+
+    /// Fetches the most played song charts from the Apple Music catalog.
     func fetchCharts() async {
         isLoading = true
+        errorMessage = nil
+
         do {
-            let request = MusicCatalogChartsRequest(kinds: [.mostPlayed], types: [Song.self])
-            let response = try await request.response()
-            songCharts = response.songCharts
+            songCharts = try await musicService.fetchTopSongs()
         } catch {
-            self.error = error
+            errorMessage = error.localizedDescription
         }
+
         isLoading = false
     }
 }
-
