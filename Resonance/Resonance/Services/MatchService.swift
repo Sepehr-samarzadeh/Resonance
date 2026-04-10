@@ -45,6 +45,29 @@ actor MatchService {
             .filter { $0 != currentUserId }
     }
 
+    // MARK: - Deduplication
+
+    /// Checks if a match already exists between two users (in either direction).
+    /// - Parameters:
+    ///   - userId1: First user's ID.
+    ///   - userId2: Second user's ID.
+    /// - Returns: The existing match, or `nil` if none exists.
+    func findExistingMatch(userId1: String, userId2: String) async throws -> Match? {
+        // Firestore `arrayContains` only supports a single value, so query for one user
+        // and filter for the other in-memory.
+        let snapshot = try await db.collection(matchesCollection)
+            .whereField("userIds", arrayContains: userId1)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { doc -> Match? in
+            var dict = doc.data()
+            dict["id"] = doc.documentID
+            guard let match = decodeFromDictOptional(Match.self, from: dict) else { return nil }
+            // Check that the other user is also in this match
+            return match.userIds.contains(userId2) ? match : nil
+        }.first
+    }
+
     // MARK: - Create Match
 
     /// Creates a new match document in Firestore.
@@ -70,6 +93,25 @@ actor MatchService {
             matchType: .realtime,
             triggerSong: song,
             triggerArtist: nil,
+            similarityScore: nil,
+            createdAt: Date()
+        )
+        return try await createMatch(match)
+    }
+
+    /// Creates a real-time match between two users triggered by an artist.
+    /// - Parameters:
+    ///   - userId1: First user's ID.
+    ///   - userId2: Second user's ID.
+    ///   - artist: The artist that triggered the match.
+    /// - Returns: The document ID of the created match.
+    @discardableResult
+    func createArtistMatch(userId1: String, userId2: String, artist: TriggerArtist) async throws -> String {
+        let match = Match(
+            userIds: [userId1, userId2],
+            matchType: .realtime,
+            triggerSong: nil,
+            triggerArtist: artist,
             similarityScore: nil,
             createdAt: Date()
         )
@@ -109,6 +151,10 @@ actor MatchService {
         userId2: String,
         threshold: Double = 0.3
     ) async throws -> String? {
+        // Don't create duplicate matches
+        let existing = try await findExistingMatch(userId1: userId1, userId2: userId2)
+        if existing != nil { return nil }
+
         let score = try await calculateSimilarity(userId1: userId1, userId2: userId2)
         guard score >= threshold else { return nil }
 
@@ -164,6 +210,27 @@ actor MatchService {
                 listener.remove()
             }
         }
+    }
+
+    // MARK: - Fetch Recent User IDs (for historical matching)
+
+    /// Fetches user IDs who have been active recently (have listening sessions).
+    /// - Parameters:
+    ///   - excludingUserId: The current user's ID to exclude.
+    ///   - limit: Maximum number of user IDs to return.
+    /// - Returns: An array of user IDs.
+    func fetchRecentUserIds(excluding excludingUserId: String, limit: Int = 20) async throws -> [String] {
+        // Get user documents that have a "currentlyListening" field or have been updated recently
+        let snapshot = try await db.collection("users")
+            .order(by: "updatedAt", descending: true)
+            .limit(to: limit + 1) // +1 to account for excluding self
+            .getDocuments()
+
+        return snapshot.documents
+            .map { $0.documentID }
+            .filter { $0 != excludingUserId }
+            .prefix(limit)
+            .map { $0 }
     }
 
     // MARK: - Private Helpers

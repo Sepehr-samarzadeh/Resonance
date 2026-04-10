@@ -10,6 +10,7 @@ struct OnboardingView: View {
 
     // MARK: - Properties
 
+    @Environment(\.services) private var services
     @State private var currentPage = 0
     @State private var musicAuthStatus: MusicAuthorization.Status = .notDetermined
     var onComplete: () -> Void
@@ -98,7 +99,7 @@ struct OnboardingView: View {
             } else {
                 Button {
                     Task {
-                        musicAuthStatus = await MusicAuthorization.request()
+                        musicAuthStatus = await services.musicService.requestAuthorization()
                     }
                 } label: {
                     Text(String(localized: "Grant Access"))

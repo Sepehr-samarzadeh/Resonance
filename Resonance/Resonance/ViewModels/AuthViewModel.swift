@@ -3,9 +3,6 @@
 
 import Foundation
 import AuthenticationServices
-import FirebaseAuth
-import GoogleSignIn
-import FirebaseCore
 
 // MARK: - AuthViewModel
 
@@ -22,16 +19,18 @@ final class AuthViewModel {
 
     private let authService: AuthService
     private let userService: UserService
+    private let notificationService: NotificationService
 
     /// Pre-cached nonce pair for Apple Sign-In.
-    /// Generated synchronously before the sign-in sheet appears.
+    /// Generated before the sign-in sheet appears.
     private var cachedNonce: (nonce: String, hashedNonce: String)?
 
     // MARK: - Init
 
-    init(authService: AuthService, userService: UserService) {
+    init(authService: AuthService, userService: UserService, notificationService: NotificationService) {
         self.authService = authService
         self.userService = userService
+        self.notificationService = notificationService
         checkExistingSession()
     }
 
@@ -39,13 +38,13 @@ final class AuthViewModel {
 
     /// Checks if a user is already signed in and loads their profile.
     func checkExistingSession() {
-        guard let firebaseUser = Auth.auth().currentUser else {
+        guard authService.isSignedIn, let uid = authService.currentUserId else {
             isSignedIn = false
             return
         }
         isSignedIn = true
         Task {
-            await loadUserProfile(userId: firebaseUser.uid)
+            await loadUserProfile(userId: uid)
         }
     }
 
@@ -60,13 +59,6 @@ final class AuthViewModel {
     /// Configures the Apple Sign-In request with the pre-cached nonce.
     /// This is called synchronously from `SignInWithAppleButton`'s `onRequest`.
     func prepareAppleSignInRequest(_ request: ASAuthorizationAppleIDRequest) {
-        if cachedNonce == nil {
-            // Fallback: generate synchronously if not pre-cached.
-            // This is safe because prepareAppleSignIn on AuthService is actor-isolated
-            // but we pre-cache it in .task {} to avoid this path.
-            request.requestedScopes = [.fullName, .email]
-            return
-        }
         request.requestedScopes = [.fullName, .email]
         request.nonce = cachedNonce?.hashedNonce
     }
@@ -94,31 +86,17 @@ final class AuthViewModel {
 
     // MARK: - Google Sign-In
 
-    /// Initiates Google Sign-In flow.
+    /// Initiates Google Sign-In flow via AuthService.
     func signInWithGoogle() async {
         isLoading = true
         errorMessage = nil
 
         do {
-            guard let clientID = FirebaseApp.app()?.options.clientID else {
-                throw AuthError.unknown(String(localized: "Missing Firebase client ID."))
-            }
-
-            let config = GIDConfiguration(clientID: clientID)
-            GIDSignIn.sharedInstance.configuration = config
-
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let rootViewController = windowScene.windows.first?.rootViewController else {
-                throw AuthError.unknown(String(localized: "Unable to find root view controller."))
-            }
-
-            let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
-            guard let idToken = signInResult.user.idToken?.tokenString else {
-                throw AuthError.missingIdentityToken
-            }
-            let accessToken = signInResult.user.accessToken.tokenString
-
-            let user = try await authService.completeGoogleSignIn(idToken: idToken, accessToken: accessToken)
+            let tokens = try await authService.presentGoogleSignIn()
+            let user = try await authService.completeGoogleSignIn(
+                idToken: tokens.idToken,
+                accessToken: tokens.accessToken
+            )
             currentUser = user
             isSignedIn = true
         } catch {
@@ -130,13 +108,20 @@ final class AuthViewModel {
 
     // MARK: - Sign Out
 
-    /// Signs out the current user.
+    /// Signs out the current user and clears device token.
     func signOut() {
+        let userId = currentUser?.id
         do {
             try authService.signOut()
-            GIDSignIn.sharedInstance.signOut()
             currentUser = nil
             isSignedIn = false
+
+            // Remove device token in background
+            if let userId {
+                Task {
+                    try? await notificationService.removeDeviceToken(forUserId: userId)
+                }
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

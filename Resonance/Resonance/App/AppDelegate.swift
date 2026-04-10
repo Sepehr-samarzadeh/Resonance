@@ -5,6 +5,7 @@ import Foundation
 import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
+import UserNotifications
 
 // MARK: - AppDelegate
 
@@ -12,7 +13,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
 
     // MARK: - Properties
 
-    private let notificationService = NotificationService()
+    /// Shared notification service — injected from ServiceContainer after launch.
+    var notificationService: NotificationService?
+
+    /// Closure called when a notification deep-link is tapped.
+    /// Set by ResonanceApp to navigate to the correct screen.
+    var onDeepLink: (@Sendable (DeepLink) -> Void)?
 
     // MARK: - App Launch
 
@@ -21,6 +27,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
+        UNUserNotificationCenter.current().delegate = self
         registerForPushNotifications(application)
         return true
     }
@@ -41,13 +48,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        let tokenString = notificationService.tokenString(from: deviceToken)
+        let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         print("AppDelegate: APNs device token — \(tokenString)")
 
         Task { @MainActor in
             if let userId = Auth.auth().currentUser?.uid {
                 do {
-                    try await notificationService.registerDeviceToken(tokenString, forUserId: userId)
+                    try await notificationService?.registerDeviceToken(tokenString, forUserId: userId)
                 } catch {
                     print("AppDelegate: Failed to register device token — \(error.localizedDescription)")
                 }
@@ -76,4 +83,38 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
             }
         }
     }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+
+    /// Called when a notification arrives while the app is in the foreground.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .badge, .sound]
+    }
+
+    /// Called when the user taps a notification.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        let userInfo = response.notification.request.content.userInfo
+
+        if let matchId = userInfo["matchId"] as? String {
+            onDeepLink?(.chat(matchId: matchId))
+        } else if let type = userInfo["type"] as? String, type == "match" {
+            onDeepLink?(.matches)
+        }
+    }
+}
+
+// MARK: - DeepLink
+
+enum DeepLink: Sendable {
+    case chat(matchId: String)
+    case matches
 }

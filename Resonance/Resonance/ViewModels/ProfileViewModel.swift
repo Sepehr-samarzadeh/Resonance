@@ -16,6 +16,7 @@ final class ProfileViewModel {
     var listeningHistory: [ListeningSession] = []
     var isLoading = false
     var isSaving = false
+    var isUploadingPhoto = false
     var errorMessage: String?
 
     // Editable fields
@@ -25,12 +26,14 @@ final class ProfileViewModel {
 
     private let userService: UserService
     private let musicService: MusicService
+    private let storageService: StorageService
 
     // MARK: - Init
 
-    init(userService: UserService, musicService: MusicService) {
+    init(userService: UserService, musicService: MusicService, storageService: StorageService) {
         self.userService = userService
         self.musicService = musicService
+        self.storageService = storageService
     }
 
     // MARK: - Load Profile
@@ -75,6 +78,27 @@ final class ProfileViewModel {
         }
 
         isSaving = false
+    }
+
+    // MARK: - Profile Photo
+
+    /// Uploads a profile photo and updates the user's photoURL in Firestore.
+    /// - Parameters:
+    ///   - imageData: JPEG image data.
+    ///   - userId: The user's Firestore document ID.
+    func uploadProfilePhoto(imageData: Data, userId: String) async {
+        isUploadingPhoto = true
+        errorMessage = nil
+
+        do {
+            let downloadURL = try await storageService.uploadProfilePhoto(imageData: imageData, userId: userId)
+            try await userService.updatePhotoURL(userId: userId, photoURL: downloadURL)
+            user = try await userService.fetchUser(userId: userId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isUploadingPhoto = false
     }
 
     // MARK: - Auto-Populate Top Artists

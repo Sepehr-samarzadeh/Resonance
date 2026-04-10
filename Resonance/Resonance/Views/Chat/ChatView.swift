@@ -88,11 +88,9 @@ struct ChatView: View {
 
     @ViewBuilder
     private func inputBar(viewModel: ChatViewModel) -> some View {
+        @Bindable var vm = viewModel
         HStack(spacing: 12) {
-            TextField(String(localized: "Type a message..."), text: Binding(
-                get: { viewModel.messageText },
-                set: { viewModel.messageText = $0 }
-            ))
+            TextField(String(localized: "Type a message..."), text: $vm.messageText)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)

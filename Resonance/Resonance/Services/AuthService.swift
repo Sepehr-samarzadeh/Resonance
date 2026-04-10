@@ -4,8 +4,10 @@
 import Foundation
 import AuthenticationServices
 @preconcurrency import FirebaseAuth
+@preconcurrency import FirebaseCore
 @preconcurrency import FirebaseFirestore
 import CryptoKit
+import GoogleSignIn
 
 // MARK: - AuthService
 
@@ -21,6 +23,11 @@ actor AuthService {
     /// Returns the currently authenticated Firebase user, if any.
     nonisolated var currentUser: FirebaseAuth.User? {
         Auth.auth().currentUser
+    }
+
+    /// Returns the currently authenticated user's UID, if any.
+    nonisolated var currentUserId: String? {
+        currentUser?.uid
     }
 
     /// Returns whether a user is currently signed in.
@@ -122,11 +129,38 @@ actor AuthService {
         return resonanceUser
     }
 
+    // MARK: - Google Sign-In (Presentation)
+
+    /// Initiates the Google Sign-In flow by presenting the sign-in UI.
+    /// Returns the ID token and access token on success.
+    @MainActor
+    func presentGoogleSignIn() async throws -> (idToken: String, accessToken: String) {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            throw AuthError.unknown(String(localized: "Missing Firebase client ID."))
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            throw AuthError.unknown(String(localized: "Unable to find root view controller."))
+        }
+
+        let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+        guard let idToken = signInResult.user.idToken?.tokenString else {
+            throw AuthError.missingIdentityToken
+        }
+        let accessToken = signInResult.user.accessToken.tokenString
+        return (idToken, accessToken)
+    }
+
     // MARK: - Sign Out
 
-    /// Signs out the current user from Firebase.
+    /// Signs out the current user from Firebase and Google.
     nonisolated func signOut() throws {
         try Auth.auth().signOut()
+        GIDSignIn.sharedInstance.signOut()
     }
 
     // MARK: - Auth State Listener

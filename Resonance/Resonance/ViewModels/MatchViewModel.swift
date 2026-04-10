@@ -45,25 +45,66 @@ final class MatchViewModel {
 
     /// Starts listening for real-time match updates.
     func listenForMatches(userId: String) async {
-        for await updatedMatches in await matchService.matchChanges(userId: userId) {
+        for await updatedMatches in matchService.matchChanges(userId: userId) {
             matches = updatedMatches
         }
     }
 
     // MARK: - Check for Real-Time Match
 
-    /// Checks if any other users are listening to the same song and creates a match.
-    func checkForRealtimeMatch(userId: String, songId: String, songName: String, artistName: String) async {
+    /// Checks if any other users are listening to the same song or artist and creates matches.
+    /// Returns the first newly created match, or nil if no new match was created.
+    @discardableResult
+    func checkForRealtimeMatch(userId: String, songId: String, songName: String, artistName: String) async -> Match? {
         do {
-            let matchedUserIds = try await matchService.findUsersListeningToSong(songId: songId, currentUserId: userId)
+            // Check by song
+            let songMatchedUserIds = try await matchService.findUsersListeningToSong(songId: songId, currentUserId: userId)
 
-            for matchedUserId in matchedUserIds {
+            for matchedUserId in songMatchedUserIds {
+                // Deduplicate: skip if a match already exists between these users
+                let existingMatch = try await matchService.findExistingMatch(userId1: userId, userId2: matchedUserId)
+                if existingMatch != nil { continue }
+
                 let triggerSong = TriggerSong(id: songId, name: songName, artistName: artistName)
-                try await matchService.createRealtimeMatch(userId1: userId, userId2: matchedUserId, song: triggerSong)
+                let matchId = try await matchService.createRealtimeMatch(userId1: userId, userId2: matchedUserId, song: triggerSong)
+                // Return the newly created match
+                let newMatch = Match(
+                    id: matchId,
+                    userIds: [userId, matchedUserId],
+                    matchType: .realtime,
+                    triggerSong: triggerSong,
+                    triggerArtist: nil,
+                    similarityScore: nil,
+                    createdAt: Date()
+                )
+                return newMatch
+            }
+
+            // Check by artist
+            let artistMatchedUserIds = try await matchService.findUsersListeningToArtist(artistName: artistName, currentUserId: userId)
+
+            for matchedUserId in artistMatchedUserIds {
+                let existingMatch = try await matchService.findExistingMatch(userId1: userId, userId2: matchedUserId)
+                if existingMatch != nil { continue }
+
+                let triggerArtist = TriggerArtist(id: artistName, name: artistName)
+                let matchId = try await matchService.createArtistMatch(userId1: userId, userId2: matchedUserId, artist: triggerArtist)
+                let newMatch = Match(
+                    id: matchId,
+                    userIds: [userId, matchedUserId],
+                    matchType: .realtime,
+                    triggerSong: nil,
+                    triggerArtist: triggerArtist,
+                    similarityScore: nil,
+                    createdAt: Date()
+                )
+                return newMatch
             }
         } catch {
             print("MatchViewModel: Failed to check for realtime match — \(error.localizedDescription)")
         }
+
+        return nil
     }
 
     // MARK: - Get Other User

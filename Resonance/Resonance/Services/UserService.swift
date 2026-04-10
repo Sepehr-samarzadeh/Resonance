@@ -54,6 +54,14 @@ actor UserService {
         ])
     }
 
+    /// Updates the user's photo URL.
+    func updatePhotoURL(userId: String, photoURL: String) async throws {
+        try await db.collection(usersCollection).document(userId).updateData([
+            "photoURL": photoURL,
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
     /// Updates the user's favorite genres.
     func updateFavoriteGenres(userId: String, genres: [String]) async throws {
         try await db.collection(usersCollection).document(userId).updateData([

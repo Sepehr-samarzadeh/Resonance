@@ -12,6 +12,7 @@
 		AE6E66242F89B752003D6406 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66232F89B752003D6406 /* FirebaseCore */; };
 		AE6E66262F89B76D003D6406 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66252F89B76D003D6406 /* FirebaseAuth */; };
 		AE6E66282F89B788003D6406 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66272F89B788003D6406 /* FirebaseFirestore */; };
+		AE6E662A2F89B7A0003D6406 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66292F89B7A0003D6406 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 				AE6E66242F89B752003D6406 /* FirebaseCore in Frameworks */,
 				AE6E65572F89A264003D6406 /* GoogleSignInSwift in Frameworks */,
 				AE6E66282F89B788003D6406 /* FirebaseFirestore in Frameworks */,
+				AE6E662A2F89B7A0003D6406 /* FirebaseStorage in Frameworks */,
 				AE6E66262F89B76D003D6406 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -104,6 +106,7 @@
 				AE6E66232F89B752003D6406 /* FirebaseCore */,
 				AE6E66252F89B76D003D6406 /* FirebaseAuth */,
 				AE6E66272F89B788003D6406 /* FirebaseFirestore */,
+				AE6E66292F89B7A0003D6406 /* FirebaseStorage */,
 			);
 			productName = Resonance;
 			productReference = AE7B86A92F8593FA00487A85 /* Resonance.app */;
@@ -430,6 +433,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		AE6E66292F89B7A0003D6406 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

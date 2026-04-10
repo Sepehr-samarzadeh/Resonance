@@ -113,11 +113,9 @@ struct MatchDetailView: View {
 
     @ViewBuilder
     private func chatInputBar(chatViewModel: ChatViewModel) -> some View {
+        @Bindable var vm = chatViewModel
         HStack(spacing: 12) {
-            TextField(String(localized: "Message..."), text: Binding(
-                get: { chatViewModel.messageText },
-                set: { chatViewModel.messageText = $0 }
-            ))
+            TextField(String(localized: "Message..."), text: $vm.messageText)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)

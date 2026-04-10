@@ -14,6 +14,7 @@ final class ServiceContainer: Sendable {
     let matchService: MatchService
     let chatService: ChatService
     let notificationService: NotificationService
+    let storageService: StorageService
 
     init() {
         authService = AuthService()
@@ -22,11 +23,19 @@ final class ServiceContainer: Sendable {
         matchService = MatchService()
         chatService = ChatService()
         notificationService = NotificationService()
+        storageService = StorageService()
     }
 }
 
 // MARK: - Environment Entry
 
+private struct ServicesKey: EnvironmentKey {
+    static let defaultValue: ServiceContainer = ServiceContainer()
+}
+
 extension EnvironmentValues {
-    @Entry var services: ServiceContainer = ServiceContainer()
+    var services: ServiceContainer {
+        get { self[ServicesKey.self] }
+        set { self[ServicesKey.self] = newValue }
+    }
 }

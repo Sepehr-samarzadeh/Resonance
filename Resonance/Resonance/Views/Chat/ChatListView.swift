@@ -10,29 +10,21 @@ struct ChatListView: View {
     // MARK: - Properties
 
     @Environment(\.services) private var services
-    @State private var viewModel: MatchViewModel?
+    @State var viewModel: MatchViewModel
     let currentUserId: String
 
     // MARK: - Body
 
     var body: some View {
-        Group {
-            if let viewModel {
-                chatListContent(viewModel: viewModel)
-            } else {
-                ProgressView()
+        chatListContent(viewModel: viewModel)
+            .navigationTitle(String(localized: "Messages"))
+            .task {
+                // The viewModel may already be listening from MatchFeedView.
+                // If matches are empty, start listening.
+                if viewModel.matches.isEmpty {
+                    await viewModel.listenForMatches(userId: currentUserId)
+                }
             }
-        }
-        .navigationTitle(String(localized: "Messages"))
-        .task {
-            if viewModel == nil {
-                viewModel = MatchViewModel(
-                    matchService: services.matchService,
-                    userService: services.userService
-                )
-            }
-            await viewModel?.listenForMatches(userId: currentUserId)
-        }
     }
 
     // MARK: - Chat List Content

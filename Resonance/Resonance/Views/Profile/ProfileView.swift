@@ -2,6 +2,7 @@
 //  Resonance
 
 import SwiftUI
+import PhotosUI
 
 // MARK: - ProfileView
 
@@ -12,6 +13,7 @@ struct ProfileView: View {
     @Environment(\.services) private var services
     @State private var viewModel: ProfileViewModel?
     @State private var showEditProfile = false
+    @State private var selectedPhoto: PhotosPickerItem?
     let currentUserId: String
     var onSignOut: () -> Void
 
@@ -44,11 +46,25 @@ struct ProfileView: View {
             if viewModel == nil {
                 viewModel = ProfileViewModel(
                     userService: services.userService,
-                    musicService: services.musicService
+                    musicService: services.musicService,
+                    storageService: services.storageService
                 )
             }
             await viewModel?.loadProfile(userId: currentUserId)
         }
+        .onChange(of: selectedPhoto) { _, newValue in
+            guard let newValue else { return }
+            Task {
+                await handlePhotoSelection(newValue)
+            }
+        }
+    }
+
+    // MARK: - Photo Selection
+
+    private func handlePhotoSelection(_ item: PhotosPickerItem) async {
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        await viewModel?.uploadProfilePhoto(imageData: data, userId: currentUserId)
     }
 
     // MARK: - Profile Content
@@ -78,14 +94,14 @@ struct ProfileView: View {
     @ViewBuilder
     private func profileHeader(viewModel: ProfileViewModel) -> some View {
         VStack(spacing: 12) {
-            Circle()
-                .fill(.purple.opacity(0.2))
-                .frame(width: 100, height: 100)
-                .overlay {
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.purple)
-                }
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                profilePhotoContent
+            }
+
+            if viewModel.isUploadingPhoto {
+                ProgressView()
+                    .padding(.top, 4)
+            }
 
             Text(viewModel.user?.displayName ?? "")
                 .font(.title2)
@@ -98,6 +114,51 @@ struct ProfileView: View {
                     .multilineTextAlignment(.center)
             }
         }
+    }
+
+    @ViewBuilder
+    private var profilePhotoContent: some View {
+        if let photoURL = viewModel?.user?.photoURL,
+           let url = URL(string: photoURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
+                case .failure:
+                    placeholderPhoto
+                case .empty:
+                    ProgressView()
+                        .frame(width: 100, height: 100)
+                @unknown default:
+                    placeholderPhoto
+                }
+            }
+        } else {
+            placeholderPhoto
+        }
+    }
+
+    private var placeholderPhoto: some View {
+        Circle()
+            .fill(.purple.opacity(0.2))
+            .frame(width: 100, height: 100)
+            .overlay {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.purple)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "camera.fill")
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(6)
+                    .background(.purple)
+                    .clipShape(Circle())
+            }
     }
 
     // MARK: - Stats Section
@@ -243,45 +304,5 @@ struct ProfileView: View {
         }
         .buttonStyle(.bordered)
         .tint(.red)
-    }
-}
-
-// MARK: - FlowLayout
-
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
-        }
-    }
-
-    private func arrangeSubviews(proposal: ProposedViewSize, subviews: Subviews) -> (positions: [CGPoint], size: CGSize) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            positions.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-        }
-
-        return (positions, CGSize(width: maxWidth, height: y + rowHeight))
     }
 }

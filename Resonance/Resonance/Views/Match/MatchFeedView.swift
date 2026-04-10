@@ -10,29 +10,17 @@ struct MatchFeedView: View {
     // MARK: - Properties
 
     @Environment(\.services) private var services
-    @State private var viewModel: MatchViewModel?
+    @State var viewModel: MatchViewModel
     let currentUserId: String
 
     // MARK: - Body
 
     var body: some View {
-        Group {
-            if let viewModel {
-                matchContent(viewModel: viewModel)
-            } else {
-                ProgressView()
+        matchContent(viewModel: viewModel)
+            .navigationTitle(String(localized: "Matches"))
+            .task {
+                await viewModel.listenForMatches(userId: currentUserId)
             }
-        }
-        .navigationTitle(String(localized: "Matches"))
-        .task {
-            if viewModel == nil {
-                viewModel = MatchViewModel(
-                    matchService: services.matchService,
-                    userService: services.userService
-                )
-            }
-            await viewModel?.listenForMatches(userId: currentUserId)
-        }
     }
 
     // MARK: - Match Content
