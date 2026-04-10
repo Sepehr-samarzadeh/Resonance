@@ -6,7 +6,8 @@ import MusicKit
 
 // MARK: - MusicService
 
-actor MusicService {
+@MainActor
+final class MusicService {
 
     // MARK: - Authorization
 
@@ -76,11 +77,10 @@ actor MusicService {
         return Array(response.items)
     }
 
-    // MARK: - Playback
+    // MARK: - In-App Playback (ApplicationMusicPlayer)
 
     /// Plays a song using the application music player.
     /// - Parameter song: The `Song` to play.
-    @MainActor
     func play(song: Song) async throws {
         let player = ApplicationMusicPlayer.shared
         player.queue = [song]
@@ -88,41 +88,91 @@ actor MusicService {
     }
 
     /// Pauses the application music player.
-    @MainActor
     func pause() {
         ApplicationMusicPlayer.shared.pause()
     }
 
     /// Resumes playback on the application music player.
-    @MainActor
     func resume() async throws {
         try await ApplicationMusicPlayer.shared.play()
     }
 
     /// Skips to the next song in the queue.
-    @MainActor
     func skipToNext() async throws {
         try await ApplicationMusicPlayer.shared.skipToNextEntry()
     }
 
     /// Skips to the previous song in the queue.
-    @MainActor
     func skipToPrevious() async throws {
         try await ApplicationMusicPlayer.shared.skipToPreviousEntry()
     }
 
-    // MARK: - Now Playing
+    // MARK: - Now Playing (ApplicationMusicPlayer)
 
     /// Returns the currently playing entry from the application music player, if any.
-    @MainActor
     var nowPlayingEntry: ApplicationMusicPlayer.Queue.Entry? {
         ApplicationMusicPlayer.shared.queue.currentEntry
     }
 
-    /// Returns the current playback status.
-    @MainActor
-    var playbackStatus: MusicPlayer.PlaybackStatus {
+    /// Returns the current playback status of the application music player.
+    var appPlaybackStatus: MusicPlayer.PlaybackStatus {
         ApplicationMusicPlayer.shared.state.playbackStatus
+    }
+
+    // MARK: - External Playback Detection (SystemMusicPlayer)
+
+    /// Returns the currently playing entry from the system music player (Apple Music app), if any.
+    var systemNowPlayingEntry: SystemMusicPlayer.Queue.Entry? {
+        SystemMusicPlayer.shared.queue.currentEntry
+    }
+
+    /// Returns the current playback status of the system music player (Apple Music app).
+    var systemPlaybackStatus: MusicPlayer.PlaybackStatus {
+        SystemMusicPlayer.shared.state.playbackStatus
+    }
+
+    /// Returns the song currently playing on the system music player, if any.
+    /// Use this to detect what users are listening to in the Apple Music app.
+    var systemNowPlayingSong: Song? {
+        guard let entry = systemNowPlayingEntry,
+              case .song(let song) = entry.item else {
+            return nil
+        }
+        return song
+    }
+
+    /// Returns `true` if the system music player is currently playing.
+    var isSystemPlayerPlaying: Bool {
+        systemPlaybackStatus == .playing
+    }
+
+    // MARK: - Unified Now Playing
+
+    /// Returns the song currently playing across either player.
+    /// Prefers the application player (in-app) if it is actively playing;
+    /// otherwise falls back to the system player (Apple Music app).
+    var currentlyPlayingSong: Song? {
+        // Prefer in-app player if it's actively playing
+        if appPlaybackStatus == .playing,
+           let entry = nowPlayingEntry,
+           case .song(let song) = entry.item {
+            return song
+        }
+        // Fall back to system player (external Apple Music)
+        if isSystemPlayerPlaying {
+            return systemNowPlayingSong
+        }
+        // If neither is playing, check if in-app has a paused entry
+        if let entry = nowPlayingEntry,
+           case .song(let song) = entry.item {
+            return song
+        }
+        return nil
+    }
+
+    /// Returns `true` if either player is currently playing.
+    var isAnyPlayerPlaying: Bool {
+        appPlaybackStatus == .playing || isSystemPlayerPlaying
     }
 
     // MARK: - Conversion Helpers

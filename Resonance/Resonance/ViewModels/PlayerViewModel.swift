@@ -88,8 +88,8 @@ final class PlayerViewModel {
 
     // MARK: - Now Playing Observation
 
-    /// Starts continuously observing the now-playing state.
-    /// Polls the player state periodically and updates the current song.
+    /// Starts continuously observing the now-playing state from both
+    /// the in-app player and the system player (Apple Music app).
     func startObservingNowPlaying() {
         stopObservingNowPlaying()
         nowPlayingTask = Task { [weak self] in
@@ -107,13 +107,12 @@ final class PlayerViewModel {
         nowPlayingTask = nil
     }
 
-    /// Syncs the current now-playing state from the music player.
+    /// Syncs the current now-playing state from both the in-app and system music players.
+    /// Prefers the in-app player if it is actively playing; otherwise checks the system
+    /// player to detect external Apple Music playback for real-time matching.
     private func syncNowPlaying() {
-        let entry = musicService.nowPlayingEntry
-        if let entry, case .song(let song) = entry.item {
-            currentSong = song
-        }
-        isPlaying = musicService.playbackStatus == .playing
+        currentSong = musicService.currentlyPlayingSong
+        isPlaying = musicService.isAnyPlayerPlaying
     }
 
     // MARK: - Save Listening Session
