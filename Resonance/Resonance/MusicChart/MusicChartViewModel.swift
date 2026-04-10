@@ -16,7 +16,13 @@ final class MusicChartViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let musicService = MusicService()
+    private let musicService: MusicService
+
+    // MARK: - Init
+
+    init(musicService: MusicService) {
+        self.musicService = musicService
+    }
 
     // MARK: - Fetch Charts
 

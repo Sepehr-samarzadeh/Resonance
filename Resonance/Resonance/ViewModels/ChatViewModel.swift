@@ -16,7 +16,13 @@ final class ChatViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let chatService = ChatService()
+    private let chatService: ChatService
+
+    // MARK: - Init
+
+    init(chatService: ChatService) {
+        self.chatService = chatService
+    }
 
     // MARK: - Load Messages
 

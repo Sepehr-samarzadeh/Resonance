@@ -10,16 +10,45 @@ struct HomeView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = HomeViewModel()
-    @State private var authViewModel: AuthViewModel
-
-    init(authViewModel: AuthViewModel) {
-        _authViewModel = State(initialValue: authViewModel)
-    }
+    @Environment(\.services) private var services
+    @State private var viewModel: HomeViewModel?
+    @State var authViewModel: AuthViewModel
 
     // MARK: - Body
 
     var body: some View {
+        Group {
+            if let viewModel {
+                homeContent(viewModel: viewModel)
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationTitle(String(localized: "Home"))
+        .task {
+            if viewModel == nil {
+                viewModel = HomeViewModel(
+                    musicService: services.musicService,
+                    userService: services.userService
+                )
+            }
+            await viewModel?.loadData()
+
+            // Update currently listening status
+            if let userId = authViewModel.currentUser?.id,
+               let song = viewModel?.recentlyPlayed.first {
+                await viewModel?.updateCurrentlyListening(userId: userId, song: song)
+            }
+        }
+        .refreshable {
+            await viewModel?.loadData()
+        }
+    }
+
+    // MARK: - Home Content
+
+    @ViewBuilder
+    private func homeContent(viewModel: HomeViewModel) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 20) {
                 greetingSection
@@ -29,17 +58,10 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    recentlyPlayedSection
+                    recentlyPlayedSection(viewModel: viewModel)
                 }
             }
             .padding()
-        }
-        .navigationTitle(String(localized: "Home"))
-        .task {
-            await viewModel.loadData()
-        }
-        .refreshable {
-            await viewModel.loadData()
         }
     }
 
@@ -59,7 +81,8 @@ struct HomeView: View {
 
     // MARK: - Recently Played Section
 
-    private var recentlyPlayedSection: some View {
+    @ViewBuilder
+    private func recentlyPlayedSection(viewModel: HomeViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "Recently Played"))
                 .font(.headline)

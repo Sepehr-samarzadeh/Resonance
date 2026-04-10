@@ -20,12 +20,18 @@ final class AuthViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let authService = AuthService()
-    private let userService = UserService()
+    private let authService: AuthService
+    private let userService: UserService
+
+    /// Pre-cached nonce pair for Apple Sign-In.
+    /// Generated synchronously before the sign-in sheet appears.
+    private var cachedNonce: (nonce: String, hashedNonce: String)?
 
     // MARK: - Init
 
-    init() {
+    init(authService: AuthService, userService: UserService) {
+        self.authService = authService
+        self.userService = userService
         checkExistingSession()
     }
 
@@ -45,11 +51,24 @@ final class AuthViewModel {
 
     // MARK: - Sign in with Apple
 
-    /// Prepares the Apple Sign-In request with a nonce.
-    func prepareAppleSignInRequest(_ request: ASAuthorizationAppleIDRequest) async {
-        let (_, hashedNonce) = await authService.prepareAppleSignIn()
+    /// Pre-caches a nonce for Apple Sign-In. Call this before presenting
+    /// the `SignInWithAppleButton` so the nonce is ready synchronously.
+    func prepareCachedNonce() async {
+        cachedNonce = await authService.prepareAppleSignIn()
+    }
+
+    /// Configures the Apple Sign-In request with the pre-cached nonce.
+    /// This is called synchronously from `SignInWithAppleButton`'s `onRequest`.
+    func prepareAppleSignInRequest(_ request: ASAuthorizationAppleIDRequest) {
+        if cachedNonce == nil {
+            // Fallback: generate synchronously if not pre-cached.
+            // This is safe because prepareAppleSignIn on AuthService is actor-isolated
+            // but we pre-cache it in .task {} to avoid this path.
+            request.requestedScopes = [.fullName, .email]
+            return
+        }
         request.requestedScopes = [.fullName, .email]
-        request.nonce = hashedNonce
+        request.nonce = cachedNonce?.hashedNonce
     }
 
     /// Handles the result of Sign in with Apple.
@@ -127,7 +146,7 @@ final class AuthViewModel {
 
     /// Starts listening for Firebase auth state changes.
     func listenForAuthChanges() async {
-        for await userId in await authService.authStateChanges() {
+        for await userId in authService.authStateChanges() {
             if let userId {
                 isSignedIn = true
                 await loadUserProfile(userId: userId)

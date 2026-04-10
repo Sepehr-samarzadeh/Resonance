@@ -9,12 +9,36 @@ struct ChatListView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = MatchViewModel()
+    @Environment(\.services) private var services
+    @State private var viewModel: MatchViewModel?
     let currentUserId: String
 
     // MARK: - Body
 
     var body: some View {
+        Group {
+            if let viewModel {
+                chatListContent(viewModel: viewModel)
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationTitle(String(localized: "Messages"))
+        .task {
+            if viewModel == nil {
+                viewModel = MatchViewModel(
+                    matchService: services.matchService,
+                    userService: services.userService
+                )
+            }
+            await viewModel?.listenForMatches(userId: currentUserId)
+        }
+    }
+
+    // MARK: - Chat List Content
+
+    @ViewBuilder
+    private func chatListContent(viewModel: MatchViewModel) -> some View {
         List {
             if viewModel.matches.isEmpty && !viewModel.isLoading {
                 ContentUnavailableView(
@@ -31,10 +55,6 @@ struct ChatListView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle(String(localized: "Messages"))
-        .task {
-            await viewModel.listenForMatches(userId: currentUserId)
-        }
         .overlay {
             if viewModel.isLoading {
                 ProgressView()
@@ -49,8 +69,8 @@ struct ChatRowView: View {
     let match: Match
     let currentUserId: String
 
+    @Environment(\.services) private var services
     @State private var otherUser: ResonanceUser?
-    private let userService = UserService()
 
     var body: some View {
         HStack(spacing: 12) {
@@ -82,7 +102,11 @@ struct ChatRowView: View {
         }
         .task {
             guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else { return }
-            otherUser = try? await userService.fetchUser(userId: otherUserId)
+            do {
+                otherUser = try await services.userService.fetchUser(userId: otherUserId)
+            } catch {
+                print("ChatRowView: Failed to load other user — \(error.localizedDescription)")
+            }
         }
     }
 }

@@ -46,7 +46,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
 
         Task { @MainActor in
             if let userId = Auth.auth().currentUser?.uid {
-                try? await notificationService.registerDeviceToken(tokenString, forUserId: userId)
+                do {
+                    try await notificationService.registerDeviceToken(tokenString, forUserId: userId)
+                } catch {
+                    print("AppDelegate: Failed to register device token — \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -61,15 +65,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     // MARK: - Private
 
     private func registerForPushNotifications(_ application: UIApplication) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if let error {
-                print("AppDelegate: Notification auth error — \(error.localizedDescription)")
-                return
-            }
-            if granted {
-                DispatchQueue.main.async {
+        Task { @MainActor in
+            do {
+                let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+                if granted {
                     application.registerForRemoteNotifications()
                 }
+            } catch {
+                print("AppDelegate: Notification auth error — \(error.localizedDescription)")
             }
         }
     }

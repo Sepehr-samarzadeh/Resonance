@@ -15,8 +15,15 @@ final class MatchViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let matchService = MatchService()
-    private let userService = UserService()
+    private let matchService: MatchService
+    private let userService: UserService
+
+    // MARK: - Init
+
+    init(matchService: MatchService, userService: UserService) {
+        self.matchService = matchService
+        self.userService = userService
+    }
 
     // MARK: - Load Matches
 

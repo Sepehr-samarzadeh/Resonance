@@ -12,6 +12,7 @@ struct EditProfileView: View {
     @State var viewModel: ProfileViewModel
     let userId: String
     @Environment(\.dismiss) private var dismiss
+    @State private var newGenre = ""
 
     // MARK: - Body
 
@@ -35,7 +36,6 @@ struct EditProfileView: View {
                 }
 
                 HStack {
-                    @State var newGenre = ""
                     TextField(String(localized: "Add genre"), text: $newGenre)
                     Button(String(localized: "Add")) {
                         let trimmed = newGenre.trimmingCharacters(in: .whitespacesAndNewlines)

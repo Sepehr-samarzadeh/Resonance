@@ -10,7 +10,7 @@ struct LoginView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = AuthViewModel()
+    @State var authViewModel: AuthViewModel
 
     // MARK: - Body
 
@@ -39,15 +39,18 @@ struct LoginView: View {
         .alert(
             String(localized: "Sign In Error"),
             isPresented: .init(
-                get: { viewModel.errorMessage != nil },
-                set: { if !$0 { viewModel.errorMessage = nil } }
+                get: { authViewModel.errorMessage != nil },
+                set: { if !$0 { authViewModel.errorMessage = nil } }
             )
         ) {
             Button(String(localized: "OK"), role: .cancel) {}
         } message: {
-            if let errorMessage = viewModel.errorMessage {
+            if let errorMessage = authViewModel.errorMessage {
                 Text(errorMessage)
             }
+        }
+        .task {
+            await authViewModel.prepareCachedNonce()
         }
     }
 
@@ -75,18 +78,16 @@ struct LoginView: View {
 
     private var signInSection: some View {
         VStack(spacing: 16) {
-            if viewModel.isLoading {
+            if authViewModel.isLoading {
                 ProgressView()
                     .tint(.white)
                     .padding()
             } else {
                 SignInWithAppleButton(.signIn) { request in
-                    Task {
-                        await viewModel.prepareAppleSignInRequest(request)
-                    }
+                    authViewModel.prepareAppleSignInRequest(request)
                 } onCompletion: { result in
                     Task {
-                        await viewModel.handleAppleSignIn(result: result)
+                        await authViewModel.handleAppleSignIn(result: result)
                     }
                 }
                 .signInWithAppleButtonStyle(.white)
@@ -95,7 +96,7 @@ struct LoginView: View {
 
                 Button {
                     Task {
-                        await viewModel.signInWithGoogle()
+                        await authViewModel.signInWithGoogle()
                     }
                 } label: {
                     HStack(spacing: 8) {

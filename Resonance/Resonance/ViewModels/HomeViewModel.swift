@@ -16,8 +16,15 @@ final class HomeViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let musicService = MusicService()
-    private let userService = UserService()
+    private let musicService: MusicService
+    private let userService: UserService
+
+    // MARK: - Init
+
+    init(musicService: MusicService, userService: UserService) {
+        self.musicService = musicService
+        self.userService = userService
+    }
 
     // MARK: - Load Data
 

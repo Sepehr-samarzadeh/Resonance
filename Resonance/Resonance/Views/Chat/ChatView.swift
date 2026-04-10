@@ -9,32 +9,67 @@ struct ChatView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = ChatViewModel()
-    let matchId: String
+    @Environment(\.services) private var services
+    @State private var viewModel: ChatViewModel?
+    @State private var otherUser: ResonanceUser?
+
+    let match: Match
     let currentUserId: String
-    let otherUserName: String
+
+    private var otherUserName: String {
+        otherUser?.displayName ?? String(localized: "Chat")
+    }
 
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            messagesList
-
-            Divider()
-
-            inputBar
+        Group {
+            if let viewModel {
+                chatContent(viewModel: viewModel)
+            } else {
+                ProgressView()
+            }
         }
         .navigationTitle(otherUserName)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.listenForMessages(matchId: matchId)
-            await viewModel.markAsRead(matchId: matchId, currentUserId: currentUserId)
+            if viewModel == nil {
+                viewModel = ChatViewModel(chatService: services.chatService)
+            }
+
+            // Load other user
+            if let otherUserId = match.userIds.first(where: { $0 != currentUserId }) {
+                do {
+                    otherUser = try await services.userService.fetchUser(userId: otherUserId)
+                } catch {
+                    print("ChatView: Failed to load other user — \(error.localizedDescription)")
+                }
+            }
+
+            if let matchId = match.id {
+                await viewModel?.listenForMessages(matchId: matchId)
+                await viewModel?.markAsRead(matchId: matchId, currentUserId: currentUserId)
+            }
+        }
+    }
+
+    // MARK: - Chat Content
+
+    @ViewBuilder
+    private func chatContent(viewModel: ChatViewModel) -> some View {
+        VStack(spacing: 0) {
+            messagesList(viewModel: viewModel)
+
+            Divider()
+
+            inputBar(viewModel: viewModel)
         }
     }
 
     // MARK: - Messages List
 
-    private var messagesList: some View {
+    @ViewBuilder
+    private func messagesList(viewModel: ChatViewModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 6) {
                 ForEach(viewModel.messages) { message in
@@ -51,9 +86,13 @@ struct ChatView: View {
 
     // MARK: - Input Bar
 
-    private var inputBar: some View {
+    @ViewBuilder
+    private func inputBar(viewModel: ChatViewModel) -> some View {
         HStack(spacing: 12) {
-            TextField(String(localized: "Type a message..."), text: $viewModel.messageText)
+            TextField(String(localized: "Type a message..."), text: Binding(
+                get: { viewModel.messageText },
+                set: { viewModel.messageText = $0 }
+            ))
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -61,6 +100,7 @@ struct ChatView: View {
                 .clipShape(Capsule())
 
             Button {
+                guard let matchId = match.id else { return }
                 Task {
                     await viewModel.sendMessage(matchId: matchId, senderId: currentUserId)
                 }

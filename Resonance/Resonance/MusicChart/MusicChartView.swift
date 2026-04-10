@@ -10,11 +10,32 @@ struct MusicChartView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = MusicChartViewModel()
+    @Environment(\.services) private var services
+    @State private var viewModel: MusicChartViewModel?
 
     // MARK: - Body
 
     var body: some View {
+        Group {
+            if let viewModel {
+                chartContent(viewModel: viewModel)
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationTitle(String(localized: "Top Charts"))
+        .task {
+            if viewModel == nil {
+                viewModel = MusicChartViewModel(musicService: services.musicService)
+            }
+            await viewModel?.fetchCharts()
+        }
+    }
+
+    // MARK: - Chart Content
+
+    @ViewBuilder
+    private func chartContent(viewModel: MusicChartViewModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 if viewModel.isLoading {
@@ -29,10 +50,6 @@ struct MusicChartView: View {
                 }
             }
             .padding()
-        }
-        .navigationTitle(String(localized: "Top Charts"))
-        .task {
-            await viewModel.fetchCharts()
         }
     }
 

@@ -9,12 +9,36 @@ struct MatchFeedView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = MatchViewModel()
+    @Environment(\.services) private var services
+    @State private var viewModel: MatchViewModel?
     let currentUserId: String
 
     // MARK: - Body
 
     var body: some View {
+        Group {
+            if let viewModel {
+                matchContent(viewModel: viewModel)
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationTitle(String(localized: "Matches"))
+        .task {
+            if viewModel == nil {
+                viewModel = MatchViewModel(
+                    matchService: services.matchService,
+                    userService: services.userService
+                )
+            }
+            await viewModel?.listenForMatches(userId: currentUserId)
+        }
+    }
+
+    // MARK: - Match Content
+
+    @ViewBuilder
+    private func matchContent(viewModel: MatchViewModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 if viewModel.isLoading {
@@ -39,10 +63,6 @@ struct MatchFeedView: View {
             }
             .padding()
         }
-        .navigationTitle(String(localized: "Matches"))
-        .task {
-            await viewModel.listenForMatches(userId: currentUserId)
-        }
     }
 }
 
@@ -52,8 +72,8 @@ struct MatchCardView: View {
     let match: Match
     let currentUserId: String
 
+    @Environment(\.services) private var services
     @State private var otherUser: ResonanceUser?
-    private let userService = UserService()
 
     var body: some View {
         HStack(spacing: 14) {
@@ -89,7 +109,11 @@ struct MatchCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
             guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else { return }
-            otherUser = try? await userService.fetchUser(userId: otherUserId)
+            do {
+                otherUser = try await services.userService.fetchUser(userId: otherUserId)
+            } catch {
+                print("MatchCardView: Failed to load other user — \(error.localizedDescription)")
+            }
         }
     }
 }

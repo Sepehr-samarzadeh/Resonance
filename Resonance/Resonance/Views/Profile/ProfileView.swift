@@ -9,7 +9,8 @@ struct ProfileView: View {
 
     // MARK: - Properties
 
-    @State private var viewModel = ProfileViewModel()
+    @Environment(\.services) private var services
+    @State private var viewModel: ProfileViewModel?
     @State private var showEditProfile = false
     let currentUserId: String
     var onSignOut: () -> Void
@@ -17,21 +18,12 @@ struct ProfileView: View {
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                profileHeader
-
-                statsSection
-
-                topArtistsSection
-
-                genresSection
-
-                listeningHistorySection
-
-                signOutButton
+        Group {
+            if let viewModel {
+                profileContent(viewModel: viewModel)
+            } else {
+                ProgressView()
             }
-            .padding()
         }
         .navigationTitle(String(localized: "Profile"))
         .toolbar {
@@ -42,18 +34,49 @@ struct ProfileView: View {
             }
         }
         .sheet(isPresented: $showEditProfile) {
-            NavigationStack {
-                EditProfileView(viewModel: viewModel, userId: currentUserId)
+            if let viewModel {
+                NavigationStack {
+                    EditProfileView(viewModel: viewModel, userId: currentUserId)
+                }
             }
         }
         .task {
-            await viewModel.loadProfile(userId: currentUserId)
+            if viewModel == nil {
+                viewModel = ProfileViewModel(
+                    userService: services.userService,
+                    musicService: services.musicService
+                )
+            }
+            await viewModel?.loadProfile(userId: currentUserId)
+        }
+    }
+
+    // MARK: - Profile Content
+
+    @ViewBuilder
+    private func profileContent(viewModel: ProfileViewModel) -> some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                profileHeader(viewModel: viewModel)
+
+                statsSection(viewModel: viewModel)
+
+                topArtistsSection(viewModel: viewModel)
+
+                genresSection(viewModel: viewModel)
+
+                listeningHistorySection(viewModel: viewModel)
+
+                signOutButton
+            }
+            .padding()
         }
     }
 
     // MARK: - Profile Header
 
-    private var profileHeader: some View {
+    @ViewBuilder
+    private func profileHeader(viewModel: ProfileViewModel) -> some View {
         VStack(spacing: 12) {
             Circle()
                 .fill(.purple.opacity(0.2))
@@ -79,7 +102,8 @@ struct ProfileView: View {
 
     // MARK: - Stats Section
 
-    private var statsSection: some View {
+    @ViewBuilder
+    private func statsSection(viewModel: ProfileViewModel) -> some View {
         HStack(spacing: 32) {
             statItem(
                 title: String(localized: "Artists"),
@@ -112,7 +136,8 @@ struct ProfileView: View {
 
     // MARK: - Top Artists Section
 
-    private var topArtistsSection: some View {
+    @ViewBuilder
+    private func topArtistsSection(viewModel: ProfileViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(String(localized: "Top Artists"))
@@ -144,7 +169,8 @@ struct ProfileView: View {
 
     // MARK: - Genres Section
 
-    private var genresSection: some View {
+    @ViewBuilder
+    private func genresSection(viewModel: ProfileViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "Favorite Genres"))
                 .font(.headline)
@@ -173,7 +199,8 @@ struct ProfileView: View {
 
     // MARK: - Listening History Section
 
-    private var listeningHistorySection: some View {
+    @ViewBuilder
+    private func listeningHistorySection(viewModel: ProfileViewModel) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "Recent Listening"))
                 .font(.headline)

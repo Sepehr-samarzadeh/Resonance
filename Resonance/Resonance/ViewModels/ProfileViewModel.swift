@@ -23,8 +23,15 @@ final class ProfileViewModel {
     var editBio = ""
     var editFavoriteGenres: [String] = []
 
-    private let userService = UserService()
-    private let musicService = MusicService()
+    private let userService: UserService
+    private let musicService: MusicService
+
+    // MARK: - Init
+
+    init(userService: UserService, musicService: MusicService) {
+        self.userService = userService
+        self.musicService = musicService
+    }
 
     // MARK: - Load Profile
 
@@ -85,7 +92,7 @@ final class ProfileViewModel {
                     seenArtists.insert(artistName)
                     topArtists.append(TopArtist(id: song.id.rawValue, name: artistName))
                 }
-                if topArtists.count >= 10 { break }
+                if topArtists.count >= Constants.Matching.maxTopArtists { break }
             }
 
             try await userService.updateTopArtists(userId: userId, artists: topArtists)
@@ -99,7 +106,7 @@ final class ProfileViewModel {
 
     /// Starts listening for real-time profile updates.
     func listenForProfileChanges(userId: String) async {
-        for await updatedUser in await userService.userChanges(userId: userId) {
+        for await updatedUser in userService.userChanges(userId: userId) {
             user = updatedUser
         }
     }

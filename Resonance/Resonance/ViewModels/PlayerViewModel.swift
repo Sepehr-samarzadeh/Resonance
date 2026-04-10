@@ -17,8 +17,18 @@ final class PlayerViewModel {
     var queue: [Song] = []
     var errorMessage: String?
 
-    private let musicService = MusicService()
-    private let userService = UserService()
+    private let musicService: MusicService
+    private let userService: UserService
+
+    /// Task handle for the continuous now-playing observer.
+    private var nowPlayingTask: Task<Void, Never>?
+
+    // MARK: - Init
+
+    init(musicService: MusicService, userService: UserService) {
+        self.musicService = musicService
+        self.userService = userService
+    }
 
     // MARK: - Playback Controls
 
@@ -78,8 +88,27 @@ final class PlayerViewModel {
 
     // MARK: - Now Playing Observation
 
-    /// Observes the now-playing state and updates the current song.
-    func observeNowPlaying() {
+    /// Starts continuously observing the now-playing state.
+    /// Polls the player state periodically and updates the current song.
+    func startObservingNowPlaying() {
+        stopObservingNowPlaying()
+        nowPlayingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                self.syncNowPlaying()
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    /// Stops the continuous now-playing observer.
+    func stopObservingNowPlaying() {
+        nowPlayingTask?.cancel()
+        nowPlayingTask = nil
+    }
+
+    /// Syncs the current now-playing state from the music player.
+    private func syncNowPlaying() {
         let entry = musicService.nowPlayingEntry
         if let entry, case .song(let song) = entry.item {
             currentSong = song
