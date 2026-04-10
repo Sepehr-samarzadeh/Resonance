@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		AE6E65552F89A264003D6406 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E65542F89A264003D6406 /* GoogleSignIn */; };
 		AE6E65572F89A264003D6406 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E65562F89A264003D6406 /* GoogleSignInSwift */; };
+		AE6E66242F89B752003D6406 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66232F89B752003D6406 /* FirebaseCore */; };
+		AE6E66262F89B76D003D6406 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66252F89B76D003D6406 /* FirebaseAuth */; };
+		AE6E66282F89B788003D6406 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66272F89B788003D6406 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,17 +45,28 @@
 			buildActionMask = 2147483647;
 			files = (
 				AE6E65552F89A264003D6406 /* GoogleSignIn in Frameworks */,
+				AE6E66242F89B752003D6406 /* FirebaseCore in Frameworks */,
 				AE6E65572F89A264003D6406 /* GoogleSignInSwift in Frameworks */,
+				AE6E66282F89B788003D6406 /* FirebaseFirestore in Frameworks */,
+				AE6E66262F89B76D003D6406 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		AE6E66222F89B752003D6406 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		AE7B86A02F8593FA00487A85 = {
 			isa = PBXGroup;
 			children = (
 				AE7B86AB2F8593FA00487A85 /* Resonance */,
+				AE6E66222F89B752003D6406 /* Frameworks */,
 				AE7B86AA2F8593FA00487A85 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,6 +101,9 @@
 			packageProductDependencies = (
 				AE6E65542F89A264003D6406 /* GoogleSignIn */,
 				AE6E65562F89A264003D6406 /* GoogleSignInSwift */,
+				AE6E66232F89B752003D6406 /* FirebaseCore */,
+				AE6E66252F89B76D003D6406 /* FirebaseAuth */,
+				AE6E66272F89B788003D6406 /* FirebaseFirestore */,
 			);
 			productName = Resonance;
 			productReference = AE7B86A92F8593FA00487A85 /* Resonance.app */;
@@ -398,6 +415,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AE6E65532F89A264003D6406 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		AE6E66232F89B752003D6406 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		AE6E66252F89B76D003D6406 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		AE6E66272F89B788003D6406 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

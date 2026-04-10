@@ -3,8 +3,8 @@
 
 import Foundation
 import AuthenticationServices
-import FirebaseAuth
-import FirebaseFirestore
+@preconcurrency import FirebaseAuth
+@preconcurrency import FirebaseFirestore
 import CryptoKit
 
 // MARK: - AuthService
@@ -19,12 +19,12 @@ actor AuthService {
     // MARK: - Current User
 
     /// Returns the currently authenticated Firebase user, if any.
-    var currentUser: FirebaseAuth.User? {
+    nonisolated var currentUser: FirebaseAuth.User? {
         Auth.auth().currentUser
     }
 
     /// Returns whether a user is currently signed in.
-    var isSignedIn: Bool {
+    nonisolated var isSignedIn: Bool {
         currentUser != nil
     }
 
@@ -125,20 +125,22 @@ actor AuthService {
     // MARK: - Sign Out
 
     /// Signs out the current user from Firebase.
-    func signOut() throws {
+    nonisolated func signOut() throws {
         try Auth.auth().signOut()
     }
 
     // MARK: - Auth State Listener
 
-    /// Returns an `AsyncStream` that emits the current Firebase user whenever auth state changes.
-    func authStateChanges() -> AsyncStream<FirebaseAuth.User?> {
+    /// Returns an `AsyncStream` that emits the current Firebase user's UID whenever auth state changes.
+    /// Streams `nil` when no user is signed in.
+    nonisolated func authStateChanges() -> AsyncStream<String?> {
         AsyncStream { continuation in
-            let handle = Auth.auth().addStateDidChangeListener { _, user in
-                continuation.yield(user)
+            let handle = Auth.auth().addStateDidChangeListener { @Sendable _, user in
+                continuation.yield(user?.uid)
             }
-            continuation.onTermination = { _ in
-                Auth.auth().removeStateDidChangeListener(handle)
+            nonisolated(unsafe) let unsafeHandle = handle
+            continuation.onTermination = { @Sendable _ in
+                Auth.auth().removeStateDidChangeListener(unsafeHandle)
             }
         }
     }
@@ -151,10 +153,12 @@ actor AuthService {
         let docRef = db.collection("users").document(userId)
         let snapshot = try await docRef.getDocument()
 
+        let dict = try encodeToDict(user)
+
         if snapshot.exists {
-            try docRef.setData(from: user, merge: true)
+            try await docRef.setData(dict, merge: true)
         } else {
-            try docRef.setData(from: user)
+            try await docRef.setData(dict)
         }
     }
 

@@ -2,7 +2,7 @@
 //  Resonance
 
 import Foundation
-import FirebaseFirestore
+@preconcurrency import FirebaseFirestore
 
 // MARK: - ChatService
 
@@ -28,10 +28,11 @@ actor ChatService {
             isRead: false,
             createdAt: Date()
         )
-        try db.collection(matchesCollection)
+        let dict = try encodeToDict(message)
+        try await db.collection(matchesCollection)
             .document(matchId)
             .collection(messagesSubcollection)
-            .addDocument(from: message)
+            .addDocument(data: dict)
     }
 
     // MARK: - Fetch Messages
@@ -50,15 +51,18 @@ actor ChatService {
             .getDocuments()
 
         return snapshot.documents.compactMap { doc in
-            try? doc.data(as: Message.self)
+            var dict = doc.data()
+            dict["id"] = doc.documentID
+            return decodeFromDictOptional(Message.self, from: dict)
         }
     }
 
     // MARK: - Real-Time Messages
 
     /// Returns an `AsyncStream` that emits messages for a match in real time.
-    func messageChanges(matchId: String) -> AsyncStream<[Message]> {
-        AsyncStream { continuation in
+    nonisolated func messageChanges(matchId: String) -> AsyncStream<[Message]> {
+        let db = Firestore.firestore()
+        return AsyncStream { continuation in
             let listener = db.collection(matchesCollection)
                 .document(matchId)
                 .collection(messagesSubcollection)
@@ -68,12 +72,14 @@ actor ChatService {
                         print("ChatService: Error listening to messages — \(error.localizedDescription)")
                         return
                     }
-                    let messages = snapshot?.documents.compactMap { doc in
-                        try? doc.data(as: Message.self)
+                    let messages = snapshot?.documents.compactMap { doc -> Message? in
+                        var dict = doc.data()
+                        dict["id"] = doc.documentID
+                        return decodeFromDictOptional(Message.self, from: dict)
                     } ?? []
                     continuation.yield(messages)
                 }
-            continuation.onTermination = { _ in
+            continuation.onTermination = { @Sendable _ in
                 listener.remove()
             }
         }

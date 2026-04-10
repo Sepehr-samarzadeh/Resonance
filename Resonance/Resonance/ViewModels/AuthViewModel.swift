@@ -127,10 +127,10 @@ final class AuthViewModel {
 
     /// Starts listening for Firebase auth state changes.
     func listenForAuthChanges() async {
-        for await firebaseUser in await authService.authStateChanges() {
-            if let firebaseUser {
+        for await userId in await authService.authStateChanges() {
+            if let userId {
                 isSignedIn = true
-                await loadUserProfile(userId: firebaseUser.uid)
+                await loadUserProfile(userId: userId)
             } else {
                 isSignedIn = false
                 currentUser = nil

@@ -2,7 +2,7 @@
 //  Resonance
 
 import Foundation
-import FirebaseFirestore
+@preconcurrency import FirebaseFirestore
 
 // MARK: - MatchService
 
@@ -52,7 +52,8 @@ actor MatchService {
     /// - Returns: The document ID of the created match.
     @discardableResult
     func createMatch(_ match: Match) async throws -> String {
-        let docRef = try db.collection(matchesCollection).addDocument(from: match)
+        let dict = try encodeToDict(match)
+        let docRef = try await db.collection(matchesCollection).addDocument(data: dict)
         return docRef.documentID
     }
 
@@ -134,13 +135,16 @@ actor MatchService {
             .getDocuments()
 
         return snapshot.documents.compactMap { doc in
-            try? doc.data(as: Match.self)
+            var dict = doc.data()
+            dict["id"] = doc.documentID
+            return decodeFromDictOptional(Match.self, from: dict)
         }
     }
 
     /// Returns an `AsyncStream` that emits match changes for a user in real time.
-    func matchChanges(userId: String) -> AsyncStream<[Match]> {
-        AsyncStream { continuation in
+    nonisolated func matchChanges(userId: String) -> AsyncStream<[Match]> {
+        let db = Firestore.firestore()
+        return AsyncStream { continuation in
             let listener = db.collection(matchesCollection)
                 .whereField("userIds", arrayContains: userId)
                 .order(by: "createdAt", descending: true)
@@ -149,12 +153,14 @@ actor MatchService {
                         print("MatchService: Error listening to matches — \(error.localizedDescription)")
                         return
                     }
-                    let matches = snapshot?.documents.compactMap { doc in
-                        try? doc.data(as: Match.self)
+                    let matches = snapshot?.documents.compactMap { doc -> Match? in
+                        var dict = doc.data()
+                        dict["id"] = doc.documentID
+                        return decodeFromDictOptional(Match.self, from: dict)
                     } ?? []
                     continuation.yield(matches)
                 }
-            continuation.onTermination = { _ in
+            continuation.onTermination = { @Sendable _ in
                 listener.remove()
             }
         }

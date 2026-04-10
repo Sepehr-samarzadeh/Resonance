@@ -2,7 +2,7 @@
 //  Resonance
 
 import Foundation
-import FirebaseFirestore
+@preconcurrency import FirebaseFirestore
 
 // MARK: - NotificationService
 

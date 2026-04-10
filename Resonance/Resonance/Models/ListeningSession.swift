@@ -2,12 +2,11 @@
 //  Resonance
 
 import Foundation
-import FirebaseFirestore
 
 // MARK: - ListeningSession
 
-struct ListeningSession: Codable, Identifiable, Sendable {
-    @DocumentID var id: String?
+struct ListeningSession: Identifiable, Sendable {
+    var id: String?
     var songId: String
     var songName: String
     var artistId: String
@@ -15,4 +14,36 @@ struct ListeningSession: Codable, Identifiable, Sendable {
     var genre: String?
     var listenedAt: Date
     var durationSeconds: Int
+}
+
+// MARK: - ListeningSession + Codable
+
+extension ListeningSession: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, songId, songName, artistId, artistName, genre, listenedAt, durationSeconds
+    }
+
+    nonisolated init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        songId = try container.decode(String.self, forKey: .songId)
+        songName = try container.decode(String.self, forKey: .songName)
+        artistId = try container.decode(String.self, forKey: .artistId)
+        artistName = try container.decode(String.self, forKey: .artistName)
+        genre = try container.decodeIfPresent(String.self, forKey: .genre)
+        listenedAt = try container.decode(Date.self, forKey: .listenedAt)
+        durationSeconds = try container.decode(Int.self, forKey: .durationSeconds)
+    }
+
+    nonisolated func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encode(songId, forKey: .songId)
+        try container.encode(songName, forKey: .songName)
+        try container.encode(artistId, forKey: .artistId)
+        try container.encode(artistName, forKey: .artistName)
+        try container.encodeIfPresent(genre, forKey: .genre)
+        try container.encode(listenedAt, forKey: .listenedAt)
+        try container.encode(durationSeconds, forKey: .durationSeconds)
+    }
 }
