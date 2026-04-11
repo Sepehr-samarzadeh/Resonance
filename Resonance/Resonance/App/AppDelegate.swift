@@ -21,6 +21,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     /// Observed by `MainTabView` to drive navigation.
     var pendingDeepLink: DeepLink?
 
+    /// Stores the latest APNs device token string for post-sign-in registration.
+    var latestDeviceToken: String?
+
     // MARK: - App Launch
 
     func application(
@@ -52,6 +55,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     ) {
         let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
         print("AppDelegate: APNs device token — \(tokenString)")
+
+        // Store the token for post-sign-in registration
+        latestDeviceToken = tokenString
 
         Task { @MainActor in
             if let userId = Auth.auth().currentUser?.uid {

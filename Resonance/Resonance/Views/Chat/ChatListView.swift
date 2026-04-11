@@ -56,6 +56,22 @@ struct ChatListView: View {
                     NavigationLink(value: match) {
                         ChatRowView(match: match, currentUserId: currentUserId)
                     }
+                    .onAppear {
+                        if match.id == viewModel.matches.last?.id {
+                            Task {
+                                await viewModel.loadMoreMatches(userId: currentUserId)
+                            }
+                        }
+                    }
+                }
+
+                if viewModel.isLoadingMore {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .listRowSeparator(.hidden)
                 }
             }
         }

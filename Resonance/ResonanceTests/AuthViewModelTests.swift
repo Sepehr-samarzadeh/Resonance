@@ -119,6 +119,12 @@ struct AuthViewModelTests {
         #expect(vm.isSignedIn == false)
         #expect(vm.currentUser == nil)
         #expect(auth.signOutCallCount == 1)
+
+        // Wait for background cleanup tasks to complete
+        try? await Task.sleep(for: .milliseconds(100))
+
+        // Verify currentlyListening was cleared on sign-out
+        #expect(user.updateCurrentlyListeningCallCount >= 1)
     }
 
     @Test("signOut sets errorMessage when signOut throws")

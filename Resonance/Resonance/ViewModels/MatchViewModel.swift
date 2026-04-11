@@ -13,10 +13,15 @@ final class MatchViewModel {
 
     var matches: [Match] = []
     var isLoading = false
+    var isLoadingMore = false
+    var hasMoreMatches = true
     var errorMessage: String?
 
     private let matchService: any MatchServiceProtocol
     private let userService: any UserServiceProtocol
+
+    /// Number of matches to fetch per page.
+    private let pageSize = 20
 
     // MARK: - Init
 
@@ -25,20 +30,40 @@ final class MatchViewModel {
         self.userService = userService
     }
 
-    // MARK: - Load Matches
+    // MARK: - Load Matches (paginated)
 
-    /// Fetches all matches for the given user.
+    /// Fetches the first page of matches for the given user.
     func loadMatches(userId: String) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            matches = try await matchService.fetchMatches(userId: userId)
+            let fetched = try await matchService.fetchMatches(userId: userId, limit: pageSize, afterDate: nil)
+            matches = fetched
+            hasMoreMatches = fetched.count >= pageSize
         } catch {
             errorMessage = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    /// Loads the next page of matches using cursor-based pagination.
+    func loadMoreMatches(userId: String) async {
+        guard hasMoreMatches, !isLoadingMore else { return }
+
+        isLoadingMore = true
+
+        do {
+            let cursor = matches.last?.createdAt
+            let fetched = try await matchService.fetchMatches(userId: userId, limit: pageSize, afterDate: cursor)
+            matches.append(contentsOf: fetched)
+            hasMoreMatches = fetched.count >= pageSize
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoadingMore = false
     }
 
     // MARK: - Listen for Matches

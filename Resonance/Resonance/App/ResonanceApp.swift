@@ -75,6 +75,14 @@ struct RootView: View {
         .task {
             await authViewModel.listenForAuthChanges()
         }
+        .onChange(of: authViewModel.isSignedIn) { _, isSignedIn in
+            if isSignedIn, let userId = authViewModel.currentUser?.id,
+               let token = appDelegate.latestDeviceToken {
+                Task {
+                    try? await appDelegate.notificationService?.registerDeviceToken(token, forUserId: userId)
+                }
+            }
+        }
     }
 }
 

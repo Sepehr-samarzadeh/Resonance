@@ -133,22 +133,15 @@ struct ProfileView: View {
     private var profilePhotoContent: some View {
         if let photoURL = viewModel?.user?.photoURL,
            let url = URL(string: photoURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                case .failure:
-                    placeholderPhoto
-                case .empty:
-                    ProgressView()
-                        .frame(width: 100, height: 100)
-                @unknown default:
-                    placeholderPhoto
-                }
+            CachedAsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+            } placeholder: {
+                ProgressView()
+                    .frame(width: 100, height: 100)
             }
         } else {
             placeholderPhoto

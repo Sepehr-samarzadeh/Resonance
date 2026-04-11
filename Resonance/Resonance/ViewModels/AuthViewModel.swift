@@ -108,7 +108,7 @@ final class AuthViewModel {
 
     // MARK: - Sign Out
 
-    /// Signs out the current user and clears device token.
+    /// Signs out the current user, clears currently-listening status, and removes device token.
     func signOut() {
         let userId = currentUser?.id
         do {
@@ -116,10 +116,16 @@ final class AuthViewModel {
             currentUser = nil
             isSignedIn = false
 
-            // Remove device token in background
+            // Clean up in background: clear listening status and remove device token
             if let userId {
                 Task {
-                    try? await notificationService.removeDeviceToken(forUserId: userId)
+                    async let clearListening: Void = {
+                        try? await self.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                    }()
+                    async let removeToken: Void = {
+                        try? await self.notificationService.removeDeviceToken(forUserId: userId)
+                    }()
+                    _ = await (clearListening, removeToken)
                 }
             }
         } catch {

@@ -32,6 +32,14 @@ protocol MatchServiceProtocol: Sendable {
     /// Fetches all matches for a given user.
     func fetchMatches(userId: String) async throws -> [Match]
 
+    /// Fetches a page of matches for a given user, ordered by most recent.
+    /// - Parameters:
+    ///   - userId: The user's ID.
+    ///   - limit: Maximum number of matches to return per page.
+    ///   - afterDate: If provided, only return matches created before this date (cursor pagination).
+    /// - Returns: An array of `Match` documents.
+    func fetchMatches(userId: String, limit: Int, afterDate: Date?) async throws -> [Match]
+
     /// Returns an `AsyncStream` that emits match changes for a user in real time.
     func matchChanges(userId: String) -> AsyncStream<[Match]>
 

@@ -197,6 +197,31 @@ actor MatchService: MatchServiceProtocol {
         }
     }
 
+    /// Fetches a page of matches for a given user, ordered by most recent.
+    /// - Parameters:
+    ///   - userId: The user's ID.
+    ///   - limit: Maximum number of matches to return per page.
+    ///   - afterDate: If provided, only return matches created before this date (cursor pagination).
+    /// - Returns: An array of `Match` documents.
+    func fetchMatches(userId: String, limit: Int, afterDate: Date?) async throws -> [Match] {
+        var query = db.collection(matchesCollection)
+            .whereField("userIds", arrayContains: userId)
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+
+        if let afterDate {
+            query = query.start(after: [Timestamp(date: afterDate)])
+        }
+
+        let snapshot = try await query.getDocuments()
+
+        return snapshot.documents.compactMap { doc in
+            var dict = doc.data()
+            dict["id"] = doc.documentID
+            return decodeFromDictOptional(Match.self, from: dict)
+        }
+    }
+
     /// Returns an `AsyncStream` that emits match changes for a user in real time.
     nonisolated func matchChanges(userId: String) -> AsyncStream<[Match]> {
         let db = Firestore.firestore()

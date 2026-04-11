@@ -59,6 +59,18 @@ struct MatchFeedView: View {
                             MatchCardView(match: match, currentUserId: currentUserId)
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            if match.id == viewModel.matches.last?.id {
+                                Task {
+                                    await viewModel.loadMoreMatches(userId: currentUserId)
+                                }
+                            }
+                        }
+                    }
+
+                    if viewModel.isLoadingMore {
+                        ProgressView()
+                            .padding()
                     }
                 }
             }

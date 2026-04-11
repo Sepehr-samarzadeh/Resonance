@@ -15,6 +15,7 @@ final class MockMatchService: MatchServiceProtocol, @unchecked Sendable {
     var createArtistMatchCallCount = 0
     var fetchMatchCallCount = 0
     var fetchMatchesCallCount = 0
+    var fetchMatchesPaginatedCallCount = 0
     var matchChangesCallCount = 0
     var fetchRecentUserIdsCallCount = 0
     var createHistoricalMatchCallCount = 0
@@ -28,6 +29,7 @@ final class MockMatchService: MatchServiceProtocol, @unchecked Sendable {
     var stubbedCreateArtistMatch: Result<String, Error> = .success("match-2")
     var stubbedFetchMatch: Result<Match?, Error> = .success(nil)
     var stubbedFetchMatches: Result<[Match], Error> = .success([])
+    var stubbedFetchMatchesPaginated: Result<[Match], Error> = .success([])
     var stubbedMatchChanges: [[Match]] = []
     var stubbedFetchRecentUserIds: Result<[String], Error> = .success([])
     var stubbedCreateHistoricalMatch: Result<String?, Error> = .success(nil)
@@ -76,6 +78,11 @@ final class MockMatchService: MatchServiceProtocol, @unchecked Sendable {
     func fetchMatches(userId: String) async throws -> [Match] {
         fetchMatchesCallCount += 1
         return try stubbedFetchMatches.get()
+    }
+
+    func fetchMatches(userId: String, limit: Int, afterDate: Date?) async throws -> [Match] {
+        fetchMatchesPaginatedCallCount += 1
+        return try stubbedFetchMatchesPaginated.get()
     }
 
     func matchChanges(userId: String) -> AsyncStream<[Match]> {
