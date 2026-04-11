@@ -25,12 +25,12 @@ extension Match: Codable {
     nonisolated init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)
-        userIds = try container.decode([String].self, forKey: .userIds)
-        matchType = try container.decode(MatchType.self, forKey: .matchType)
+        userIds = try container.decodeIfPresent([String].self, forKey: .userIds) ?? []
+        matchType = try container.decodeIfPresent(MatchType.self, forKey: .matchType) ?? .historical
         triggerSong = try container.decodeIfPresent(TriggerSong.self, forKey: .triggerSong)
         triggerArtist = try container.decodeIfPresent(TriggerArtist.self, forKey: .triggerArtist)
         similarityScore = try container.decodeIfPresent(Double.self, forKey: .similarityScore)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
     }
 
     nonisolated func encode(to encoder: any Encoder) throws {

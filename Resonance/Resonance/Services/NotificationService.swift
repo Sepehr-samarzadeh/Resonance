@@ -11,7 +11,10 @@ final class NotificationService: NotificationServiceProtocol, Sendable {
 
     // MARK: - Properties
 
-    private let db = Firestore.firestore()
+    /// Firestore instance — resolved lazily to ensure Firebase is configured first.
+    private var db: Firestore {
+        Firestore.firestore()
+    }
 
     // MARK: - Device Token Registration
 

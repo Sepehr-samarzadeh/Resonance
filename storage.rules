@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ──────────────────────────────────────────────
+    // Helper functions
+    // ──────────────────────────────────────────────
+
+    /// Returns true if the request is from an authenticated user.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /// Returns true if the authenticated user's UID matches the given userId.
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ──────────────────────────────────────────────
+    // profilePhotos/{userId}.jpg
+    // ──────────────────────────────────────────────
+
+    match /profilePhotos/{fileName} {
+      // Anyone authenticated can read profile photos (needed for match cards, chat, etc.)
+      allow read: if isAuthenticated();
+
+      // Users can only upload/overwrite their own profile photo.
+      // The file must be named {userId}.jpg
+      // Max file size: 5 MB
+      // Content type must be an image
+      allow write: if isAuthenticated()
+        && fileName.matches(request.auth.uid + '[.]jpg')
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ──────────────────────────────────────────────
+    // Default: deny everything else
+    // ──────────────────────────────────────────────
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

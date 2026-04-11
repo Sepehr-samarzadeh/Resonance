@@ -18,6 +18,12 @@ final class AuthViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    /// The Firebase UID of the currently authenticated user.
+    /// Available immediately upon sign-in, before the Firestore profile loads.
+    var currentUserId: String? {
+        authService.currentUserId
+    }
+
     private let authService: any AuthServiceProtocol
     private let userService: any UserServiceProtocol
     private let notificationService: any NotificationServiceProtocol
@@ -154,6 +160,8 @@ final class AuthViewModel {
     private func loadUserProfile(userId: String) async {
         do {
             currentUser = try await userService.fetchUser(userId: userId)
+        } catch let error as DecodingError {
+            Log.auth.error("Failed to decode user profile: \(String(describing: error))")
         } catch {
             Log.auth.error("Failed to load user profile: \(error.localizedDescription)")
         }

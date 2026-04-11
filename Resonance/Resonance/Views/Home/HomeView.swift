@@ -13,13 +13,18 @@ struct HomeView: View {
     @Environment(\.services) private var services
     @State private var viewModel: HomeViewModel?
     @State var authViewModel: AuthViewModel
+    let playerViewModel: PlayerViewModel
 
     // MARK: - Body
 
     var body: some View {
         Group {
             if let viewModel {
-                homeContent(viewModel: viewModel)
+                HomeContent(
+                    viewModel: viewModel,
+                    authViewModel: authViewModel,
+                    playerViewModel: playerViewModel
+                )
             } else {
                 ProgressView()
             }
@@ -57,60 +62,58 @@ struct HomeView: View {
             }
         }
     }
+}
 
-    // MARK: - Home Content
+// MARK: - HomeContent
 
-    @ViewBuilder
-    private func homeContent(viewModel: HomeViewModel) -> some View {
+/// Main scrollable content for the Home tab.
+/// Separated into its own struct to scope observation tracking.
+private struct HomeContent: View {
+    let viewModel: HomeViewModel
+    let authViewModel: AuthViewModel
+    let playerViewModel: PlayerViewModel
+
+    var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                greetingSection
+            LazyVStack(alignment: .leading, spacing: 24) {
+                HomeGreetingSection(
+                    displayName: authViewModel.currentUser?.displayName ?? ""
+                )
+
+                InlineNowPlayingView(playerViewModel: playerViewModel)
+                    .frame(maxWidth: .infinity)
 
                 if viewModel.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    recentlyPlayedSection(viewModel: viewModel)
+                    AlbumArtGrid(
+                        songs: viewModel.recentlyPlayed,
+                        playerViewModel: playerViewModel
+                    )
                 }
             }
             .padding()
         }
     }
+}
 
-    // MARK: - Greeting Section
+// MARK: - HomeGreetingSection
 
-    private var greetingSection: some View {
+/// Greeting header showing the user's name and tagline.
+private struct HomeGreetingSection: View {
+    let displayName: String
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "Hello, \(authViewModel.currentUser?.displayName ?? "")"))
+            Text(String(localized: "Hello, \(displayName)"))
                 .font(.title2)
                 .fontWeight(.bold)
 
             Text(String(localized: "Discover your musical matches"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-        }
-    }
-
-    // MARK: - Recently Played Section
-
-    @ViewBuilder
-    private func recentlyPlayedSection(viewModel: HomeViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "Recently Played"))
-                .font(.headline)
-
-            if viewModel.recentlyPlayed.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "No Recent Songs"),
-                    systemImage: "music.note",
-                    description: Text(String(localized: "Start listening to see your recent tracks here."))
-                )
-            } else {
-                ForEach(viewModel.recentlyPlayed, id: \.id) { song in
-                    SongRow(song: song)
-                }
-            }
         }
     }
 }

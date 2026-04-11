@@ -11,8 +11,12 @@ actor UserService: UserServiceProtocol {
 
     // MARK: - Properties
 
-    private let db = Firestore.firestore()
+    /// Firestore instance — resolved lazily to ensure Firebase is configured first.
+    private var db: Firestore {
+        Firestore.firestore()
+    }
     private let usersCollection = "users"
+    private nonisolated let logger = Logger(subsystem: "com.resonance", category: "user")
 
     // MARK: - Fetch User
 
@@ -20,6 +24,10 @@ actor UserService: UserServiceProtocol {
     /// - Parameter userId: The user's document ID.
     /// - Returns: The decoded `ResonanceUser`, or `nil` if not found.
     func fetchUser(userId: String) async throws -> ResonanceUser? {
+        guard !userId.isEmpty else {
+            logger.error("fetchUser called with empty userId")
+            return nil
+        }
         let snapshot = try await db.collection(usersCollection).document(userId).getDocument()
         guard snapshot.exists, let dict = snapshot.data() else { return nil }
         var mutableDict = dict
@@ -82,6 +90,56 @@ actor UserService: UserServiceProtocol {
         ])
     }
 
+    /// Updates the user's pronouns.
+    func updatePronouns(userId: String, pronouns: String?) async throws {
+        let value: Any = pronouns ?? FieldValue.delete()
+        try await db.collection(usersCollection).document(userId).updateData([
+            "pronouns": value,
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    /// Updates the user's mood / status message.
+    func updateMood(userId: String, mood: String?) async throws {
+        let value: Any = mood ?? FieldValue.delete()
+        try await db.collection(usersCollection).document(userId).updateData([
+            "mood": value,
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    /// Updates the user's favorite song.
+    func updateFavoriteSong(userId: String, song: FavoriteSong?) async throws {
+        if let song {
+            let dict = try encodeToDict(song)
+            try await db.collection(usersCollection).document(userId).updateData([
+                "favoriteSong": dict,
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        } else {
+            try await db.collection(usersCollection).document(userId).updateData([
+                "favoriteSong": FieldValue.delete(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        }
+    }
+
+    /// Updates the user's social links.
+    func updateSocialLinks(userId: String, links: SocialLinks?) async throws {
+        if let links {
+            let dict = try encodeToDict(links)
+            try await db.collection(usersCollection).document(userId).updateData([
+                "socialLinks": dict,
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        } else {
+            try await db.collection(usersCollection).document(userId).updateData([
+                "socialLinks": FieldValue.delete(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        }
+    }
+
     // MARK: - Currently Listening
 
     /// Updates the user's currently listening status.
@@ -127,6 +185,10 @@ actor UserService: UserServiceProtocol {
     ///   - limit: Maximum number of sessions to return.
     /// - Returns: An array of `ListeningSession`.
     func fetchListeningHistory(userId: String, limit: Int = 50) async throws -> [ListeningSession] {
+        guard !userId.isEmpty else {
+            logger.error("fetchListeningHistory called with empty userId")
+            return []
+        }
         let snapshot = try await db.collection("listeningHistory")
             .document(userId)
             .collection("sessions")
@@ -145,12 +207,17 @@ actor UserService: UserServiceProtocol {
 
     /// Returns an `AsyncStream` that emits user document changes in real time.
     nonisolated func userChanges(userId: String) -> AsyncStream<ResonanceUser?> {
+        guard !userId.isEmpty else {
+            logger.error("userChanges called with empty userId")
+            return AsyncStream { $0.finish() }
+        }
+        let logger = self.logger
         let db = Firestore.firestore()
         return AsyncStream { continuation in
             let listener = db.collection(usersCollection).document(userId)
                 .addSnapshotListener { snapshot, error in
                     if let error {
-                        Log.user.error("Error listening to user changes: \(error.localizedDescription)")
+                        logger.error("Error listening to user changes: \(error.localizedDescription)")
                         return
                     }
                     guard let snapshot, snapshot.exists, let dict = snapshot.data() else {

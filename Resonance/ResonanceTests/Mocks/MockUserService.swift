@@ -17,6 +17,10 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
     var updateFavoriteGenresCallCount = 0
     var updateTopArtistsCallCount = 0
     var updateCurrentlyListeningCallCount = 0
+    var updatePronounsCallCount = 0
+    var updateMoodCallCount = 0
+    var updateFavoriteSongCallCount = 0
+    var updateSocialLinksCallCount = 0
     var saveListeningSessionCallCount = 0
     var fetchListeningHistoryCallCount = 0
     var userChangesCallCount = 0
@@ -31,6 +35,10 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
     var stubbedUpdateFavoriteGenresError: Error?
     var stubbedUpdateTopArtistsError: Error?
     var stubbedUpdateCurrentlyListeningError: Error?
+    var stubbedUpdatePronounsError: Error?
+    var stubbedUpdateMoodError: Error?
+    var stubbedUpdateFavoriteSongError: Error?
+    var stubbedUpdateSocialLinksError: Error?
     var stubbedSaveListeningSessionError: Error?
     var stubbedFetchListeningHistoryResult: Result<[ListeningSession], Error> = .success([])
     var stubbedUserChanges: [ResonanceUser?] = []
@@ -43,6 +51,10 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
     var capturedGenres: [String]?
     var capturedTopArtists: [TopArtist]?
     var capturedCurrentlyListening: CurrentlyListening??
+    var capturedPronouns: String??
+    var capturedMood: String??
+    var capturedFavoriteSong: FavoriteSong??
+    var capturedSocialLinks: SocialLinks??
 
     // MARK: - Protocol Methods
 
@@ -85,6 +97,30 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
         updateTopArtistsCallCount += 1
         capturedTopArtists = artists
         if let error = stubbedUpdateTopArtistsError { throw error }
+    }
+
+    func updatePronouns(userId: String, pronouns: String?) async throws {
+        updatePronounsCallCount += 1
+        capturedPronouns = pronouns
+        if let error = stubbedUpdatePronounsError { throw error }
+    }
+
+    func updateMood(userId: String, mood: String?) async throws {
+        updateMoodCallCount += 1
+        capturedMood = mood
+        if let error = stubbedUpdateMoodError { throw error }
+    }
+
+    func updateFavoriteSong(userId: String, song: FavoriteSong?) async throws {
+        updateFavoriteSongCallCount += 1
+        capturedFavoriteSong = song
+        if let error = stubbedUpdateFavoriteSongError { throw error }
+    }
+
+    func updateSocialLinks(userId: String, links: SocialLinks?) async throws {
+        updateSocialLinksCallCount += 1
+        capturedSocialLinks = links
+        if let error = stubbedUpdateSocialLinksError { throw error }
     }
 
     func updateCurrentlyListening(userId: String, listening: CurrentlyListening?) async throws {

@@ -72,6 +72,7 @@ final class MatchViewModel {
     /// Starts listening for real-time match updates.
     func listenForMatches(userId: String) async {
         for await updatedMatches in matchService.matchChanges(userId: userId) {
+            guard !Task.isCancelled else { return }
             matches = updatedMatches
         }
     }

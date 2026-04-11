@@ -12,6 +12,8 @@ final class MockChatService: ChatServiceProtocol, @unchecked Sendable {
     var fetchMessagesCallCount = 0
     var messageChangesCallCount = 0
     var markMessagesAsReadCallCount = 0
+    var unreadCountCallCount = 0
+    var fetchLastMessageCallCount = 0
 
     // MARK: - Stubbed Results
 
@@ -19,6 +21,8 @@ final class MockChatService: ChatServiceProtocol, @unchecked Sendable {
     var stubbedFetchMessagesResult: Result<[Message], Error> = .success([])
     var stubbedMessageChanges: [[Message]] = []
     var stubbedMarkMessagesAsReadError: Error?
+    var stubbedUnreadCount = 0
+    var stubbedLastMessage: Message?
 
     // MARK: - Captured Values
 
@@ -55,5 +59,15 @@ final class MockChatService: ChatServiceProtocol, @unchecked Sendable {
     func markMessagesAsRead(matchId: String, currentUserId: String) async throws {
         markMessagesAsReadCallCount += 1
         if let error = stubbedMarkMessagesAsReadError { throw error }
+    }
+
+    func unreadCount(matchId: String, currentUserId: String) async throws -> Int {
+        unreadCountCallCount += 1
+        return stubbedUnreadCount
+    }
+
+    func fetchLastMessage(matchId: String) async throws -> Message? {
+        fetchLastMessageCallCount += 1
+        return stubbedLastMessage
     }
 }

@@ -38,7 +38,7 @@ struct ChatView: View {
                 viewModel = ChatViewModel(chatService: services.chatService)
             }
 
-            // Load other user
+            // Load other user info
             if let otherUserId = match.userIds.first(where: { $0 != currentUserId }) {
                 do {
                     otherUser = try await services.userService.fetchUser(userId: otherUserId)
@@ -46,9 +46,25 @@ struct ChatView: View {
                     Log.ui.error("Failed to load other user: \(error.localizedDescription)")
                 }
             }
-
-            if let matchId = match.id {
-                await viewModel?.listenForMessages(matchId: matchId, currentUserId: currentUserId)
+        }
+        .task(id: match.id) {
+            guard let matchId = match.id else { return }
+            if viewModel == nil {
+                viewModel = ChatViewModel(chatService: services.chatService)
+            }
+            await viewModel?.listenForMessages(matchId: matchId, currentUserId: currentUserId)
+        }
+        .alert(
+            String(localized: "Error"),
+            isPresented: .init(
+                get: { viewModel?.errorMessage != nil },
+                set: { if !$0 { viewModel?.errorMessage = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            if let errorMessage = viewModel?.errorMessage {
+                Text(errorMessage)
             }
         }
     }
@@ -72,14 +88,25 @@ struct ChatView: View {
     private func messagesList(viewModel: ChatViewModel) -> some View {
         ScrollView {
             LazyVStack(spacing: 6) {
-                ForEach(viewModel.messages) { message in
-                    ChatBubble(
-                        message: message,
-                        isFromCurrentUser: message.senderId == currentUserId
+                if viewModel.messages.isEmpty {
+                    ContentUnavailableView(
+                        String(localized: "No Messages Yet"),
+                        systemImage: "bubble.left.and.text.bubble.right",
+                        description: Text(String(localized: "Say hello and start the conversation!"))
                     )
+                    .padding(.top, 60)
+                } else {
+                    ForEach(viewModel.messages) { message in
+                        ChatBubble(
+                            message: message,
+                            isFromCurrentUser: message.senderId == currentUserId
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
                 }
             }
             .padding()
+            .animation(.easeOut(duration: 0.25), value: viewModel.messages.count)
         }
         .defaultScrollAnchor(.bottom)
     }
@@ -109,6 +136,7 @@ struct ChatView: View {
             }
             .accessibilityLabel(String(localized: "Send message"))
             .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: viewModel.messages.count)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)

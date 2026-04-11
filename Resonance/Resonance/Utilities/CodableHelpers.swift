@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+@preconcurrency import FirebaseFirestore
 
 // MARK: - Nonisolated Codable Helpers
 
@@ -50,6 +51,11 @@ private nonisolated func normalizeTimestamps(in dict: [String: Any]) -> [String:
 }
 
 private nonisolated func normalizeValue(_ value: Any) -> Any {
+    // Handle native Firestore Timestamp objects
+    if let timestamp = value as? Timestamp {
+        return timestamp.dateValue().timeIntervalSince1970
+    }
+
     // Handle Firestore Timestamp serialized as dict with _seconds/_nanoseconds
     if let timestampDict = value as? [String: Any] {
         if let seconds = timestampDict["_seconds"] as? Double {

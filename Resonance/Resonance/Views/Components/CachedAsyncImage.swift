@@ -2,16 +2,26 @@
 //  Resonance
 
 import SwiftUI
-import UIKit
+import CoreGraphics
+import ImageIO
+
+// MARK: - CachedImageData
+
+/// Wrapper to hold image `Data` in `NSCache` (which requires reference types).
+private final class CachedImageData: @unchecked Sendable {
+    let data: Data
+    init(_ data: Data) { self.data = data }
+}
 
 // MARK: - ImageCache
 
 /// In-memory image cache backed by `NSCache` for efficient profile photo loading.
+/// Uses `CoreGraphics` instead of UIKit to stay SwiftUI-only.
 final class ImageCache: Sendable {
 
     static let shared = ImageCache()
 
-    private let cache = NSCache<NSString, UIImage>()
+    private let cache = NSCache<NSString, CachedImageData>()
 
     private init() {
         cache.countLimit = 100
@@ -22,12 +32,18 @@ final class ImageCache: Sendable {
         guard let cached = cache.object(forKey: url.absoluteString as NSString) else {
             return nil
         }
-        return Image(uiImage: cached)
+        guard let source = CGImageSourceCreateWithData(cached.data as CFData, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            return nil
+        }
+        return Image(decorative: cgImage, scale: 1.0)
     }
 
     func store(_ data: Data, for url: URL) {
-        guard let uiImage = UIImage(data: data) else { return }
-        cache.setObject(uiImage, forKey: url.absoluteString as NSString)
+        // Validate that the data is a valid image before caching
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              CGImageSourceGetCount(source) > 0 else { return }
+        cache.setObject(CachedImageData(data), forKey: url.absoluteString as NSString, cost: data.count)
     }
 }
 

@@ -52,9 +52,11 @@ struct NowPlayingBar: View {
                         Image(systemName: playerViewModel.isPlaying ? "pause.fill" : "play.fill")
                             .font(.title3)
                             .foregroundStyle(.primary)
+                            .contentTransition(.symbolEffect(.replace))
                     }
                     .accessibilityLabel(playerViewModel.isPlaying ? String(localized: "Pause") : String(localized: "Play"))
                     .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: playerViewModel.isPlaying)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)

@@ -45,16 +45,21 @@ final class ChatViewModel {
     /// Starts listening for real-time message updates.
     /// Automatically marks incoming messages from other users as read.
     func listenForMessages(matchId: String, currentUserId: String? = nil) async {
-        for await updatedMessages in await chatService.messageChanges(matchId: matchId) {
+        for await updatedMessages in chatService.messageChanges(matchId: matchId) {
+            guard !Task.isCancelled else { return }
             messages = updatedMessages
 
-            // Auto-mark messages as read when new messages from others arrive
+            // Auto-mark messages as read when new messages from others arrive.
+            // Use a detached Task so the mark-as-read actor hop doesn't block the
+            // next stream iteration on the MainActor.
             if let currentUserId {
                 let hasUnreadFromOthers = updatedMessages.contains { message in
                     message.senderId != currentUserId && !message.isRead
                 }
                 if hasUnreadFromOthers {
-                    await markAsRead(matchId: matchId, currentUserId: currentUserId)
+                    Task { [weak self] in
+                        await self?.markAsRead(matchId: matchId, currentUserId: currentUserId)
+                    }
                 }
             }
         }

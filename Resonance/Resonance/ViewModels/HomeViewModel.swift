@@ -16,6 +16,7 @@ final class HomeViewModel {
     var recentlyPlayed: [Song] = []
     var isLoading = false
     var errorMessage: String?
+    var musicAuthStatus: MusicAuthorization.Status = .notDetermined
 
     private let musicService: any MusicServiceProtocol
     private let userService: any UserServiceProtocol
@@ -25,14 +26,26 @@ final class HomeViewModel {
     init(musicService: some MusicServiceProtocol, userService: some UserServiceProtocol) {
         self.musicService = musicService
         self.userService = userService
+        self.musicAuthStatus = musicService.authorizationStatus
     }
 
     // MARK: - Load Data
 
     /// Loads the home screen data including recently played songs.
+    /// Requests MusicKit authorization if not yet determined.
     func loadData() async {
         isLoading = true
         errorMessage = nil
+
+        // Request authorization if not yet determined
+        if musicAuthStatus == .notDetermined {
+            musicAuthStatus = await musicService.requestAuthorization()
+        }
+
+        guard musicAuthStatus == .authorized else {
+            isLoading = false
+            return
+        }
 
         do {
             recentlyPlayed = try await musicService.fetchRecentlyPlayed()
@@ -53,6 +66,7 @@ final class HomeViewModel {
                     songId: song.id.rawValue,
                     songName: song.title,
                     artistName: song.artistName,
+                    artworkURL: song.artwork?.url(width: 300, height: 300)?.absoluteString,
                     startedAt: Date()
                 )
                 try await userService.updateCurrentlyListening(userId: userId, listening: listening)

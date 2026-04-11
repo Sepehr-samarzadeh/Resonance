@@ -17,10 +17,13 @@ struct MatchFeedView: View {
     // MARK: - Body
 
     var body: some View {
-        matchContent(viewModel: viewModel)
+        MatchFeedContent(viewModel: viewModel, currentUserId: currentUserId)
             .navigationTitle(String(localized: "Matches"))
             .task {
                 await viewModel.listenForMatches(userId: currentUserId)
+            }
+            .refreshable {
+                await viewModel.loadMatches(userId: currentUserId)
             }
             .alert(
                 String(localized: "Error"),
@@ -36,16 +39,22 @@ struct MatchFeedView: View {
                 }
             }
     }
+}
 
-    // MARK: - Match Content
+// MARK: - MatchFeedContent
 
-    @ViewBuilder
-    private func matchContent(viewModel: MatchViewModel) -> some View {
+/// The scrollable match feed content, extracted to scope observation.
+private struct MatchFeedContent: View {
+    let viewModel: MatchViewModel
+    let currentUserId: String
+
+    var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 if viewModel.isLoading {
-                    ProgressView()
-                        .padding()
+                    ForEach(0..<4, id: \.self) { _ in
+                        SkeletonMatchCard()
+                    }
                 }
 
                 if viewModel.matches.isEmpty && !viewModel.isLoading {
@@ -55,11 +64,12 @@ struct MatchFeedView: View {
                         description: Text(String(localized: "Start listening to music and we'll find people who share your taste."))
                     )
                 } else {
-                    ForEach(viewModel.matches) { match in
+                    ForEach(Array(viewModel.matches.enumerated()), id: \.element.id) { index, match in
                         NavigationLink(value: match) {
                             MatchCardView(match: match, currentUserId: currentUserId)
                         }
                         .buttonStyle(.plain)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                         .onAppear {
                             if match.id == viewModel.matches.last?.id {
                                 Task {
@@ -76,6 +86,7 @@ struct MatchFeedView: View {
                 }
             }
             .padding()
+            .animation(.easeInOut(duration: 0.3), value: viewModel.matches.count)
         }
     }
 }
@@ -91,14 +102,11 @@ struct MatchCardView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Circle()
-                .fill(.purple.opacity(0.3))
-                .frame(width: 50, height: 50)
-                .overlay {
-                    Image(systemName: match.matchType == .realtime ? "waveform" : "clock")
-                        .foregroundStyle(.purple)
-                }
-                .accessibilityHidden(true)
+            ProfilePhotoView(
+                photoURL: otherUser?.photoURL,
+                size: 50,
+                fallbackIcon: match.matchType == .realtime ? "waveform" : "clock"
+            )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(otherUser?.displayName ?? String(localized: "Loading..."))

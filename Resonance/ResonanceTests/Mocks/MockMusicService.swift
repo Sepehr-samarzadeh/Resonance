@@ -12,11 +12,16 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
 
     var currentlyPlayingSong: Song?
     var isAnyPlayerPlaying = false
+    var isSystemPlayerActive = false
+    var authorizationStatus: MusicAuthorization.Status = .authorized
+    var playbackTime: TimeInterval = 0
+    var currentSongDuration: TimeInterval?
 
     // MARK: - Call Tracking
 
     var requestAuthorizationCallCount = 0
     var searchSongsCallCount = 0
+    var searchArtistsCallCount = 0
     var fetchTopSongsCallCount = 0
     var fetchRecentlyPlayedCallCount = 0
     var playCallCount = 0
@@ -24,17 +29,31 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
     var resumeCallCount = 0
     var skipToNextCallCount = 0
     var skipToPreviousCallCount = 0
+    var pauseSystemCallCount = 0
+    var resumeSystemCallCount = 0
+    var skipToNextSystemCallCount = 0
+    var skipToPreviousSystemCallCount = 0
 
     // MARK: - Stubbed Results
 
     var stubbedAuthorizationStatus: MusicAuthorization.Status = .authorized
     var stubbedSearchSongsResult: Result<[Song], Error> = .success([])
+    var stubbedSearchArtistsResult: Result<[Artist], Error> = .success([])
     var stubbedFetchTopSongsResult: Result<[MusicCatalogChart<Song>], Error> = .success([])
     var stubbedFetchRecentlyPlayedResult: Result<[Song], Error> = .success([])
     var stubbedPlayError: Error?
     var stubbedResumeError: Error?
     var stubbedSkipToNextError: Error?
     var stubbedSkipToPreviousError: Error?
+    var stubbedResumeSystemError: Error?
+    var stubbedSkipToNextSystemError: Error?
+    var stubbedSkipToPreviousSystemError: Error?
+    var seekCallCount = 0
+
+    // MARK: - Profile Photo
+
+    var fetchProfilePhotoURLCallCount = 0
+    var stubbedProfilePhotoURL: URL?
 
     /// Continuation exposed so tests can yield values into the now-playing stream.
     var nowPlayingContinuation: AsyncStream<Void>.Continuation?
@@ -76,6 +95,11 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
         return try stubbedSearchSongsResult.get()
     }
 
+    func searchArtists(query: String, limit: Int) async throws -> [Artist] {
+        searchArtistsCallCount += 1
+        return try stubbedSearchArtistsResult.get()
+    }
+
     func fetchTopSongs() async throws -> [MusicCatalogChart<Song>] {
         fetchTopSongsCallCount += 1
         return try stubbedFetchTopSongsResult.get()
@@ -110,6 +134,25 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
         if let error = stubbedSkipToPreviousError { throw error }
     }
 
+    func pauseSystem() {
+        pauseSystemCallCount += 1
+    }
+
+    func resumeSystem() async throws {
+        resumeSystemCallCount += 1
+        if let error = stubbedResumeSystemError { throw error }
+    }
+
+    func skipToNextSystem() async throws {
+        skipToNextSystemCallCount += 1
+        if let error = stubbedSkipToNextSystemError { throw error }
+    }
+
+    func skipToPreviousSystem() async throws {
+        skipToPreviousSystemCallCount += 1
+        if let error = stubbedSkipToPreviousSystemError { throw error }
+    }
+
     func nowPlayingChanges() -> AsyncStream<Void> {
         AsyncStream { continuation in
             self.nowPlayingContinuation = continuation
@@ -122,5 +165,15 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
 
     nonisolated func listeningSession(from song: Song) -> ListeningSession {
         stubbedListeningSession
+    }
+
+    func seek(to time: TimeInterval) async throws {
+        seekCallCount += 1
+        playbackTime = time
+    }
+
+    func fetchProfilePhotoURL(width: Int, height: Int) async throws -> URL? {
+        fetchProfilePhotoURLCallCount += 1
+        return stubbedProfilePhotoURL
     }
 }

@@ -11,7 +11,10 @@ actor ChatService: ChatServiceProtocol {
 
     // MARK: - Properties
 
-    private let db = Firestore.firestore()
+    /// Firestore instance — resolved lazily to ensure Firebase is configured first.
+    private var db: Firestore {
+        Firestore.firestore()
+    }
     private let matchesCollection = "matches"
     private let messagesSubcollection = "messages"
 
@@ -119,5 +122,22 @@ actor ChatService: ChatServiceProtocol {
             .getDocuments()
 
         return snapshot.documents.count
+    }
+
+    // MARK: - Last Message
+
+    /// Fetches the most recent message in a match conversation.
+    func fetchLastMessage(matchId: String) async throws -> Message? {
+        let snapshot = try await db.collection(matchesCollection)
+            .document(matchId)
+            .collection(messagesSubcollection)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+
+        guard let doc = snapshot.documents.first else { return nil }
+        var dict = doc.data()
+        dict["id"] = doc.documentID
+        return decodeFromDictOptional(Message.self, from: dict)
     }
 }

@@ -17,14 +17,15 @@ struct ChatListView: View {
     // MARK: - Body
 
     var body: some View {
-        chatListContent(viewModel: viewModel)
+        ChatListContent(viewModel: viewModel, currentUserId: currentUserId)
             .navigationTitle(String(localized: "Messages"))
-            .task {
-                // The viewModel may already be listening from MatchFeedView.
-                // If matches are empty, start listening.
+            .task(id: currentUserId) {
                 if viewModel.matches.isEmpty {
-                    await viewModel.listenForMatches(userId: currentUserId)
+                    await viewModel.loadMatches(userId: currentUserId)
                 }
+            }
+            .refreshable {
+                await viewModel.loadMatches(userId: currentUserId)
             }
             .alert(
                 String(localized: "Error"),
@@ -40,13 +41,23 @@ struct ChatListView: View {
                 }
             }
     }
+}
 
-    // MARK: - Chat List Content
+// MARK: - ChatListContent
 
-    @ViewBuilder
-    private func chatListContent(viewModel: MatchViewModel) -> some View {
+/// The chat list content, extracted to scope observation.
+private struct ChatListContent: View {
+    let viewModel: MatchViewModel
+    let currentUserId: String
+
+    var body: some View {
         List {
-            if viewModel.matches.isEmpty && !viewModel.isLoading {
+            if viewModel.isLoading {
+                ForEach(0..<5, id: \.self) { _ in
+                    SkeletonChatRow()
+                        .listRowSeparator(.hidden)
+                }
+            } else if viewModel.matches.isEmpty {
                 ContentUnavailableView(
                     String(localized: "No Conversations"),
                     systemImage: "bubble.left.and.bubble.right",
@@ -77,11 +88,6 @@ struct ChatListView: View {
             }
         }
         .listStyle(.plain)
-        .overlay {
-            if viewModel.isLoading {
-                ProgressView()
-            }
-        }
     }
 }
 
@@ -93,35 +99,61 @@ struct ChatRowView: View {
 
     @Environment(\.services) private var services
     @State private var otherUser: ResonanceUser?
+    @State private var lastMessage: Message?
+    @State private var unreadCount = 0
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(.purple.opacity(0.2))
-                .frame(width: 48, height: 48)
-                .overlay {
-                    Image(systemName: "person.fill")
-                        .foregroundStyle(.purple)
-                }
-                .accessibilityHidden(true)
+            ProfilePhotoView(
+                photoURL: otherUser?.photoURL,
+                size: 48
+            )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(otherUser?.displayName ?? String(localized: "Loading..."))
-                    .font(.headline)
+                HStack {
+                    Text(otherUser?.displayName ?? String(localized: "Loading..."))
+                        .font(.headline)
 
-                if let song = match.triggerSong {
-                    Text(String(localized: "Matched on \(song.name)"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    Spacer()
+
+                    if let lastMessage {
+                        Text(lastMessage.createdAt, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    } else {
+                        Text(match.createdAt, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                HStack {
+                    if let lastMessage {
+                        Text(lastMessage.text)
+                            .font(.subheadline)
+                            .foregroundStyle(unreadCount > 0 ? .primary : .secondary)
+                            .fontWeight(unreadCount > 0 ? .semibold : .regular)
+                            .lineLimit(1)
+                    } else if let song = match.triggerSong {
+                        Text(String(localized: "Matched on \(song.name)"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    if unreadCount > 0 {
+                        Text("\(unreadCount)")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.purple, in: Capsule())
+                    }
                 }
             }
-
-            Spacer()
-
-            Text(match.createdAt, style: .relative)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
         .task {
             guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else { return }
@@ -129,6 +161,14 @@ struct ChatRowView: View {
                 otherUser = try await services.userService.fetchUser(userId: otherUserId)
             } catch {
                 Log.ui.error("Failed to load other user: \(error.localizedDescription)")
+            }
+
+            guard let matchId = match.id else { return }
+            do {
+                lastMessage = try await services.chatService.fetchLastMessage(matchId: matchId)
+                unreadCount = try await services.chatService.unreadCount(matchId: matchId, currentUserId: currentUserId)
+            } catch {
+                Log.ui.error("Failed to load chat preview: \(error.localizedDescription)")
             }
         }
     }

@@ -64,15 +64,10 @@ struct MatchDetailView: View {
 
     private var matchInfoHeader: some View {
         VStack(spacing: 12) {
-            Circle()
-                .fill(.purple.opacity(0.2))
-                .frame(width: 80, height: 80)
-                .overlay {
-                    Image(systemName: "person.fill")
-                        .font(.largeTitle)
-                        .foregroundStyle(.purple)
-                        .accessibilityHidden(true)
-                }
+            ProfilePhotoView(
+                photoURL: otherUser?.photoURL,
+                size: 80
+            )
 
             Text(otherUser?.displayName ?? "")
                 .font(.title3)

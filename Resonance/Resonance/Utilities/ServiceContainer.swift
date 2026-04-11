@@ -66,13 +66,7 @@ final class ServiceContainer: Sendable {
 
 // MARK: - Environment Entry
 
-private struct ServicesKey: EnvironmentKey {
-    static let defaultValue: ServiceContainer = ServiceContainer()
-}
-
+/// Uses `@Entry` macro for environment values (iOS 18+).
 extension EnvironmentValues {
-    var services: ServiceContainer {
-        get { self[ServicesKey.self] }
-        set { self[ServicesKey.self] = newValue }
-    }
+    @Entry var services: ServiceContainer = ServiceContainer()
 }

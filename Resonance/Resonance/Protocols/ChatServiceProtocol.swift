@@ -20,6 +20,12 @@ protocol ChatServiceProtocol: Sendable {
 
     /// Marks all unread messages from other users as read.
     func markMessagesAsRead(matchId: String, currentUserId: String) async throws
+
+    /// Returns the count of unread messages for a user in a match.
+    func unreadCount(matchId: String, currentUserId: String) async throws -> Int
+
+    /// Fetches the most recent message in a match conversation.
+    func fetchLastMessage(matchId: String) async throws -> Message?
 }
 
 // MARK: - Default Parameter Values

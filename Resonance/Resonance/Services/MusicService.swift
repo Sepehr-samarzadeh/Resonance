@@ -147,6 +147,38 @@ final class MusicService: MusicServiceProtocol {
         systemPlaybackStatus == .playing
     }
 
+    /// Returns `true` when the system (Apple Music) player is the active source.
+    /// The system player is considered active when it is playing, or when the
+    /// application player has no queued entry.
+    var isSystemPlayerActive: Bool {
+        if appPlaybackStatus == .playing { return false }
+        if isSystemPlayerPlaying { return true }
+        // Neither is playing — system is "active" when app player has nothing queued
+        return nowPlayingEntry == nil && systemNowPlayingEntry != nil
+    }
+
+    // MARK: - System Player Controls
+
+    /// Pauses the system music player.
+    func pauseSystem() {
+        SystemMusicPlayer.shared.pause()
+    }
+
+    /// Resumes the system music player.
+    func resumeSystem() async throws {
+        try await SystemMusicPlayer.shared.play()
+    }
+
+    /// Skips to the next song on the system music player.
+    func skipToNextSystem() async throws {
+        try await SystemMusicPlayer.shared.skipToNextEntry()
+    }
+
+    /// Skips to the previous song on the system music player.
+    func skipToPreviousSystem() async throws {
+        try await SystemMusicPlayer.shared.skipToPreviousEntry()
+    }
+
     // MARK: - Unified Now Playing
 
     /// Returns the song currently playing across either player.
@@ -220,5 +252,40 @@ final class MusicService: MusicServiceProtocol {
             listenedAt: Date(),
             durationSeconds: song.duration.map { Int($0) } ?? 0
         )
+    }
+
+    // MARK: - Playback Position
+
+    /// The current playback time (position) of the active player, in seconds.
+    var playbackTime: TimeInterval {
+        if isSystemPlayerActive {
+            return SystemMusicPlayer.shared.playbackTime
+        }
+        return ApplicationMusicPlayer.shared.playbackTime
+    }
+
+    /// The duration of the currently playing song, in seconds.
+    /// Returns `nil` when no song is loaded.
+    var currentSongDuration: TimeInterval? {
+        currentlyPlayingSong?.duration
+    }
+
+    /// Seeks to a specific time (in seconds) on the active player.
+    func seek(to time: TimeInterval) async throws {
+        if isSystemPlayerActive {
+            SystemMusicPlayer.shared.playbackTime = time
+        } else {
+            ApplicationMusicPlayer.shared.playbackTime = time
+        }
+    }
+
+    // MARK: - Apple Music Profile Photo
+
+    /// Attempts to fetch the current user's Apple Music profile photo URL.
+    /// Currently returns `nil` as Apple has removed the social profile API.
+    func fetchProfilePhotoURL(width: Int = 400, height: Int = 400) async throws -> URL? {
+        // Apple removed the social profile API (v1/me/social-profile returns 404).
+        // No public MusicKit API exposes the user's profile photo.
+        return nil
     }
 }

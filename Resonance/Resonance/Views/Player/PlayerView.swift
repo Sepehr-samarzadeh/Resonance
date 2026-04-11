@@ -31,6 +31,13 @@ struct PlayerView: View {
 
             songInfoSection
 
+            PlaybackProgressBar(
+                playbackTime: viewModel.playbackTime,
+                duration: viewModel.songDuration,
+                onSeek: { time in await viewModel.seek(to: time) }
+            )
+            .padding(.horizontal, 20)
+
             playbackControls
 
             Spacer()
@@ -77,6 +84,8 @@ struct PlayerView: View {
             ArtworkImage(artwork, width: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
                 .shadow(color: .purple.opacity(0.3), radius: 20, y: 10)
+                .transition(.scale.combined(with: .opacity))
+                .id(song.id)
         } else {
             RoundedRectangle(cornerRadius: 20)
                 .fill(.ultraThinMaterial)
@@ -99,11 +108,15 @@ struct PlayerView: View {
                 .fontWeight(.bold)
                 .foregroundStyle(.white)
                 .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.easeInOut(duration: 0.3), value: viewModel.currentSong?.id)
 
             Text(viewModel.currentSong?.artistName ?? "")
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.easeInOut(duration: 0.3), value: viewModel.currentSong?.id)
         }
     }
 
@@ -126,8 +139,10 @@ struct PlayerView: View {
                 Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: playPauseSize))
                     .foregroundStyle(.white)
+                    .contentTransition(.symbolEffect(.replace))
             }
             .accessibilityLabel(viewModel.isPlaying ? String(localized: "Pause") : String(localized: "Play"))
+            .sensoryFeedback(.selection, trigger: viewModel.isPlaying)
 
             Button {
                 Task { await viewModel.skipToNext() }
@@ -138,5 +153,6 @@ struct PlayerView: View {
             }
             .accessibilityLabel(String(localized: "Next track"))
         }
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: viewModel.currentSong?.id)
     }
 }

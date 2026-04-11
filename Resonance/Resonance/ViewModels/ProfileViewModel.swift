@@ -23,24 +23,34 @@ final class ProfileViewModel {
     // Editable fields
     var editDisplayName = ""
     var editBio = ""
+    var editPronouns = ""
+    var editMood = ""
+    var editFavoriteSongName = ""
+    var editFavoriteSongArtist = ""
+    var editInstagram = ""
+    var editSpotify = ""
+    var editTwitter = ""
     var editFavoriteGenres: [String] = []
 
     private let userService: any UserServiceProtocol
     private let musicService: any MusicServiceProtocol
-    private let storageService: any StorageServiceProtocol
 
     // MARK: - Init
 
-    init(userService: some UserServiceProtocol, musicService: some MusicServiceProtocol, storageService: some StorageServiceProtocol) {
+    init(userService: some UserServiceProtocol, musicService: some MusicServiceProtocol) {
         self.userService = userService
         self.musicService = musicService
-        self.storageService = storageService
     }
 
     // MARK: - Load Profile
 
     /// Loads the user's profile and listening history.
     func loadProfile(userId: String) async {
+        guard !userId.isEmpty else {
+            Log.user.error("loadProfile called with empty userId")
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -49,10 +59,22 @@ final class ProfileViewModel {
             if let user {
                 editDisplayName = user.displayName
                 editBio = user.bio ?? ""
+                editPronouns = user.pronouns ?? ""
+                editMood = user.mood ?? ""
+                editFavoriteSongName = user.favoriteSong?.name ?? ""
+                editFavoriteSongArtist = user.favoriteSong?.artistName ?? ""
+                editInstagram = user.socialLinks?.instagram ?? ""
+                editSpotify = user.socialLinks?.spotify ?? ""
+                editTwitter = user.socialLinks?.twitter ?? ""
                 editFavoriteGenres = user.favoriteGenres
             }
 
             listeningHistory = try await userService.fetchListeningHistory(userId: userId, limit: 20)
+
+            // Auto-fetch Apple Music profile photo if user has none
+            if user?.photoURL == nil {
+                await fetchAndSetAppleMusicPhoto(userId: userId)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -64,6 +86,11 @@ final class ProfileViewModel {
 
     /// Saves the edited profile fields to Firestore.
     func saveProfile(userId: String) async {
+        guard !userId.isEmpty else {
+            Log.user.error("saveProfile called with empty userId")
+            return
+        }
+
         isSaving = true
         errorMessage = nil
 
@@ -71,6 +98,39 @@ final class ProfileViewModel {
             try await userService.updateDisplayName(userId: userId, displayName: editDisplayName)
             try await userService.updateBio(userId: userId, bio: editBio)
             try await userService.updateFavoriteGenres(userId: userId, genres: editFavoriteGenres)
+
+            // Save pronouns (empty string → nil to delete the field)
+            let pronouns = editPronouns.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await userService.updatePronouns(userId: userId, pronouns: pronouns.isEmpty ? nil : pronouns)
+
+            // Save mood
+            let mood = editMood.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await userService.updateMood(userId: userId, mood: mood.isEmpty ? nil : mood)
+
+            // Save favorite song
+            let songName = editFavoriteSongName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let songArtist = editFavoriteSongArtist.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !songName.isEmpty, !songArtist.isEmpty {
+                let song = FavoriteSong(id: UUID().uuidString, name: songName, artistName: songArtist)
+                try await userService.updateFavoriteSong(userId: userId, song: song)
+            } else {
+                try await userService.updateFavoriteSong(userId: userId, song: nil)
+            }
+
+            // Save social links
+            let instagram = editInstagram.trimmingCharacters(in: .whitespacesAndNewlines)
+            let spotify = editSpotify.trimmingCharacters(in: .whitespacesAndNewlines)
+            let twitter = editTwitter.trimmingCharacters(in: .whitespacesAndNewlines)
+            if instagram.isEmpty, spotify.isEmpty, twitter.isEmpty {
+                try await userService.updateSocialLinks(userId: userId, links: nil)
+            } else {
+                let links = SocialLinks(
+                    instagram: instagram.isEmpty ? nil : instagram,
+                    spotify: spotify.isEmpty ? nil : spotify,
+                    twitter: twitter.isEmpty ? nil : twitter
+                )
+                try await userService.updateSocialLinks(userId: userId, links: links)
+            }
 
             // Refresh the local user
             user = try await userService.fetchUser(userId: userId)
@@ -83,20 +143,27 @@ final class ProfileViewModel {
 
     // MARK: - Profile Photo
 
-    /// Uploads a profile photo and updates the user's photoURL in Firestore.
-    /// - Parameters:
-    ///   - imageData: JPEG image data.
-    ///   - userId: The user's Firestore document ID.
-    func uploadProfilePhoto(imageData: Data, userId: String) async {
+    /// Fetches the user's Apple Music social profile photo and saves the URL to Firestore.
+    /// Does nothing if the user already has a photo URL set.
+    func fetchAndSetAppleMusicPhoto(userId: String) async {
+        guard !userId.isEmpty else {
+            Log.user.error("fetchAndSetAppleMusicPhoto called with empty userId")
+            return
+        }
+
+        // Skip if user already has a photo
+        guard user?.photoURL == nil else { return }
+
         isUploadingPhoto = true
-        errorMessage = nil
 
         do {
-            let downloadURL = try await storageService.uploadProfilePhoto(imageData: imageData, userId: userId)
-            try await userService.updatePhotoURL(userId: userId, photoURL: downloadURL)
-            user = try await userService.fetchUser(userId: userId)
+            if let photoURL = try await musicService.fetchProfilePhotoURL(width: 400, height: 400) {
+                try await userService.updatePhotoURL(userId: userId, photoURL: photoURL.absoluteString)
+                user = try await userService.fetchUser(userId: userId)
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            Log.user.error("Failed to fetch Apple Music profile photo: \(error)")
+            // Silently fail — this is a best-effort enhancement
         }
 
         isUploadingPhoto = false
@@ -104,7 +171,8 @@ final class ProfileViewModel {
 
     // MARK: - Auto-Populate Top Artists
 
-    /// Fetches the user's recently played songs and extracts unique artists.
+    /// Fetches the user's recently played songs and extracts unique artists,
+    /// then looks up each artist's artwork via MusicKit.
     func autoPopulateTopArtists(userId: String) async {
         do {
             let songs = try await musicService.fetchRecentlyPlayed()
@@ -115,7 +183,23 @@ final class ProfileViewModel {
                 let artistName = song.artistName
                 if !seenArtists.contains(artistName) {
                     seenArtists.insert(artistName)
-                    topArtists.append(TopArtist(id: song.id.rawValue, name: artistName))
+
+                    // Use the song's artwork as a fallback, look up artist artwork
+                    let songArtworkURL = song.artwork?.url(width: 200, height: 200)?.absoluteString
+                    var artworkURL = songArtworkURL
+
+                    // Try to get the actual artist photo from MusicKit
+                    if let artists = try? await musicService.searchArtists(query: artistName, limit: 1),
+                       let artist = artists.first,
+                       let artistArt = artist.artwork?.url(width: 200, height: 200) {
+                        artworkURL = artistArt.absoluteString
+                    }
+
+                    topArtists.append(TopArtist(
+                        id: song.id.rawValue,
+                        name: artistName,
+                        artworkURL: artworkURL
+                    ))
                 }
                 if topArtists.count >= Constants.Matching.maxTopArtists { break }
             }
@@ -131,7 +215,12 @@ final class ProfileViewModel {
 
     /// Starts listening for real-time profile updates.
     func listenForProfileChanges(userId: String) async {
+        guard !userId.isEmpty else {
+            Log.user.error("listenForProfileChanges called with empty userId")
+            return
+        }
         for await updatedUser in userService.userChanges(userId: userId) {
+            guard !Task.isCancelled else { return }
             user = updatedUser
         }
     }

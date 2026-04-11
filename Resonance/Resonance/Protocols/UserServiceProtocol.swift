@@ -31,6 +31,18 @@ protocol UserServiceProtocol: Sendable {
     /// Updates the user's top artists.
     func updateTopArtists(userId: String, artists: [TopArtist]) async throws
 
+    /// Updates the user's pronouns.
+    func updatePronouns(userId: String, pronouns: String?) async throws
+
+    /// Updates the user's mood / status message.
+    func updateMood(userId: String, mood: String?) async throws
+
+    /// Updates the user's favorite song.
+    func updateFavoriteSong(userId: String, song: FavoriteSong?) async throws
+
+    /// Updates the user's social links.
+    func updateSocialLinks(userId: String, links: SocialLinks?) async throws
+
     /// Updates the user's currently listening status.
     func updateCurrentlyListening(userId: String, listening: CurrentlyListening?) async throws
 

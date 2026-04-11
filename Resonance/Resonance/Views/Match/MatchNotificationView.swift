@@ -60,5 +60,6 @@ struct MatchNotificationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .shadow(radius: 20)
         .padding(.horizontal, 32)
+        .sensoryFeedback(.success, trigger: match.id)
     }
 }

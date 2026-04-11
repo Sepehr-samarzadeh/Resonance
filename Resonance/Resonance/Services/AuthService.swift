@@ -15,7 +15,10 @@ actor AuthService: AuthServiceProtocol {
 
     // MARK: - Properties
 
-    private let db = Firestore.firestore()
+    /// Firestore instance — resolved lazily to ensure Firebase is configured first.
+    private var db: Firestore {
+        Firestore.firestore()
+    }
     private var currentNonce: String?
 
     // MARK: - Current User
@@ -80,6 +83,10 @@ actor AuthService: AuthServiceProtocol {
             email: firebaseUser.email ?? "",
             photoURL: firebaseUser.photoURL?.absoluteString,
             bio: nil,
+            pronouns: nil,
+            mood: nil,
+            favoriteSong: nil,
+            socialLinks: nil,
             authProvider: .apple,
             favoriteGenres: [],
             topArtists: [],
@@ -116,6 +123,10 @@ actor AuthService: AuthServiceProtocol {
             email: firebaseUser.email ?? "",
             photoURL: firebaseUser.photoURL?.absoluteString,
             bio: nil,
+            pronouns: nil,
+            mood: nil,
+            favoriteSong: nil,
+            socialLinks: nil,
             authProvider: .google,
             favoriteGenres: [],
             topArtists: [],

@@ -23,10 +23,10 @@ extension Message: Codable {
     nonisolated init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)
-        senderId = try container.decode(String.self, forKey: .senderId)
-        text = try container.decode(String.self, forKey: .text)
-        isRead = try container.decode(Bool.self, forKey: .isRead)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        senderId = try container.decodeIfPresent(String.self, forKey: .senderId) ?? ""
+        text = try container.decodeIfPresent(String.self, forKey: .text) ?? ""
+        isRead = try container.decodeIfPresent(Bool.self, forKey: .isRead) ?? false
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
     }
 
     nonisolated func encode(to encoder: any Encoder) throws {

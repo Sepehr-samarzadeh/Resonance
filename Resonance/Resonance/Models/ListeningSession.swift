@@ -26,13 +26,13 @@ extension ListeningSession: Codable {
     nonisolated init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)
-        songId = try container.decode(String.self, forKey: .songId)
-        songName = try container.decode(String.self, forKey: .songName)
-        artistId = try container.decode(String.self, forKey: .artistId)
-        artistName = try container.decode(String.self, forKey: .artistName)
+        songId = try container.decodeIfPresent(String.self, forKey: .songId) ?? ""
+        songName = try container.decodeIfPresent(String.self, forKey: .songName) ?? ""
+        artistId = try container.decodeIfPresent(String.self, forKey: .artistId) ?? ""
+        artistName = try container.decodeIfPresent(String.self, forKey: .artistName) ?? ""
         genre = try container.decodeIfPresent(String.self, forKey: .genre)
-        listenedAt = try container.decode(Date.self, forKey: .listenedAt)
-        durationSeconds = try container.decode(Int.self, forKey: .durationSeconds)
+        listenedAt = try container.decodeIfPresent(Date.self, forKey: .listenedAt) ?? Date()
+        durationSeconds = try container.decodeIfPresent(Int.self, forKey: .durationSeconds) ?? 0
     }
 
     nonisolated func encode(to encoder: any Encoder) throws {
