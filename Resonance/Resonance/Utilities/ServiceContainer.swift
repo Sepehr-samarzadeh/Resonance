@@ -8,13 +8,13 @@ import SwiftUI
 /// Holds all shared service instances for the app.
 /// Created once at app launch and injected via SwiftUI Environment.
 final class ServiceContainer: Sendable {
-    let authService: AuthService
-    let userService: UserService
-    let musicService: MusicService
-    let matchService: MatchService
-    let chatService: ChatService
-    let notificationService: NotificationService
-    let storageService: StorageService
+    let authService: any AuthServiceProtocol
+    let userService: any UserServiceProtocol
+    let musicService: any MusicServiceProtocol
+    let matchService: any MatchServiceProtocol
+    let chatService: any ChatServiceProtocol
+    let notificationService: any NotificationServiceProtocol
+    let storageService: any StorageServiceProtocol
 
     init() {
         authService = AuthService()

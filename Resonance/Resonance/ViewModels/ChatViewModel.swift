@@ -16,11 +16,11 @@ final class ChatViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let chatService: ChatService
+    private let chatService: any ChatServiceProtocol
 
     // MARK: - Init
 
-    init(chatService: ChatService) {
+    init(chatService: some ChatServiceProtocol) {
         self.chatService = chatService
     }
 

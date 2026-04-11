@@ -42,6 +42,19 @@ struct PlayerView: View {
             )
             .ignoresSafeArea()
         )
+        .alert(
+            String(localized: "Playback Error"),
+            isPresented: .init(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+            }
+        }
     }
 
     // MARK: - Dismiss Handle

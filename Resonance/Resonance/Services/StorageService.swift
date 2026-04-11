@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - StorageService
 
-actor StorageService {
+actor StorageService: StorageServiceProtocol {
 
     // MARK: - Properties
 

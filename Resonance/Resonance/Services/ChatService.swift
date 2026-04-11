@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - ChatService
 
-actor ChatService {
+actor ChatService: ChatServiceProtocol {
 
     // MARK: - Properties
 

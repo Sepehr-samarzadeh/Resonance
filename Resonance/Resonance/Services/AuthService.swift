@@ -11,7 +11,7 @@ import GoogleSignIn
 
 // MARK: - AuthService
 
-actor AuthService {
+actor AuthService: AuthServiceProtocol {
 
     // MARK: - Properties
 

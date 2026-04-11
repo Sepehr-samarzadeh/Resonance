@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - MatchService
 
-actor MatchService {
+actor MatchService: MatchServiceProtocol {
 
     // MARK: - Properties
 

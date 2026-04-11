@@ -15,7 +15,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     // MARK: - Properties
 
     /// Shared notification service — injected from ServiceContainer after launch.
-    var notificationService: NotificationService?
+    var notificationService: (any NotificationServiceProtocol)?
 
     /// Deep-link that should be navigated to. Set when a notification is tapped.
     /// Observed by `MainTabView` to drive navigation.

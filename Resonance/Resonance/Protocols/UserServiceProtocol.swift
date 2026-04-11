@@ -1,0 +1,45 @@
+//  UserServiceProtocol.swift
+//  Resonance
+
+import Foundation
+
+// MARK: - UserServiceProtocol
+
+/// Protocol defining the interface for user management services.
+/// Used by `AuthViewModel`, `HomeViewModel`, `PlayerViewModel`,
+/// `MatchViewModel`, and `ProfileViewModel` for testability.
+protocol UserServiceProtocol: Sendable {
+
+    /// Fetches a user document from Firestore by ID.
+    func fetchUser(userId: String) async throws -> ResonanceUser?
+
+    /// Updates the user's profile fields in Firestore.
+    func updateProfile(_ user: ResonanceUser) async throws
+
+    /// Updates the user's display name.
+    func updateDisplayName(userId: String, displayName: String) async throws
+
+    /// Updates the user's bio.
+    func updateBio(userId: String, bio: String) async throws
+
+    /// Updates the user's photo URL.
+    func updatePhotoURL(userId: String, photoURL: String) async throws
+
+    /// Updates the user's favorite genres.
+    func updateFavoriteGenres(userId: String, genres: [String]) async throws
+
+    /// Updates the user's top artists.
+    func updateTopArtists(userId: String, artists: [TopArtist]) async throws
+
+    /// Updates the user's currently listening status.
+    func updateCurrentlyListening(userId: String, listening: CurrentlyListening?) async throws
+
+    /// Saves a listening session to the user's history subcollection.
+    func saveListeningSession(userId: String, session: ListeningSession) async throws
+
+    /// Fetches the user's listening history, ordered by most recent.
+    func fetchListeningHistory(userId: String, limit: Int) async throws -> [ListeningSession]
+
+    /// Returns an `AsyncStream` that emits user document changes in real time.
+    func userChanges(userId: String) -> AsyncStream<ResonanceUser?>
+}

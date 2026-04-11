@@ -17,9 +17,9 @@ final class AuthViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let authService: AuthService
-    private let userService: UserService
-    private let notificationService: NotificationService
+    private let authService: any AuthServiceProtocol
+    private let userService: any UserServiceProtocol
+    private let notificationService: any NotificationServiceProtocol
 
     /// Pre-cached nonce pair for Apple Sign-In.
     /// Generated before the sign-in sheet appears.
@@ -27,7 +27,7 @@ final class AuthViewModel {
 
     // MARK: - Init
 
-    init(authService: AuthService, userService: UserService, notificationService: NotificationService) {
+    init(authService: some AuthServiceProtocol, userService: some UserServiceProtocol, notificationService: some NotificationServiceProtocol) {
         self.authService = authService
         self.userService = userService
         self.notificationService = notificationService

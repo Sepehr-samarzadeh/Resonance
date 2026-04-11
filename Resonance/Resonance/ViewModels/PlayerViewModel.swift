@@ -17,15 +17,15 @@ final class PlayerViewModel {
     var queue: [Song] = []
     var errorMessage: String?
 
-    private let musicService: MusicService
-    private let userService: UserService
+    private let musicService: any MusicServiceProtocol
+    private let userService: any UserServiceProtocol
 
     /// Task handle for the continuous now-playing observer.
     private var nowPlayingTask: Task<Void, Never>?
 
     // MARK: - Init
 
-    init(musicService: MusicService, userService: UserService) {
+    init(musicService: some MusicServiceProtocol, userService: some UserServiceProtocol) {
         self.musicService = musicService
         self.userService = userService
     }

@@ -7,7 +7,7 @@ import MusicKit
 // MARK: - MusicService
 
 @MainActor
-final class MusicService {
+final class MusicService: MusicServiceProtocol {
 
     // MARK: - Authorization
 

@@ -16,12 +16,12 @@ final class HomeViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let musicService: MusicService
-    private let userService: UserService
+    private let musicService: any MusicServiceProtocol
+    private let userService: any UserServiceProtocol
 
     // MARK: - Init
 
-    init(musicService: MusicService, userService: UserService) {
+    init(musicService: some MusicServiceProtocol, userService: some UserServiceProtocol) {
         self.musicService = musicService
         self.userService = userService
     }

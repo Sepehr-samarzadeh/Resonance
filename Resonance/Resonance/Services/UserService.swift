@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - UserService
 
-actor UserService {
+actor UserService: UserServiceProtocol {
 
     // MARK: - Properties
 

@@ -16,11 +16,11 @@ final class MusicChartViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let musicService: MusicService
+    private let musicService: any MusicServiceProtocol
 
     // MARK: - Init
 
-    init(musicService: MusicService) {
+    init(musicService: some MusicServiceProtocol) {
         self.musicService = musicService
     }
 

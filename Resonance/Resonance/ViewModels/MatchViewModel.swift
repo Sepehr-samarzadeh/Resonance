@@ -15,12 +15,12 @@ final class MatchViewModel {
     var isLoading = false
     var errorMessage: String?
 
-    private let matchService: MatchService
-    private let userService: UserService
+    private let matchService: any MatchServiceProtocol
+    private let userService: any UserServiceProtocol
 
     // MARK: - Init
 
-    init(matchService: MatchService, userService: UserService) {
+    init(matchService: some MatchServiceProtocol, userService: some UserServiceProtocol) {
         self.matchService = matchService
         self.userService = userService
     }

@@ -7,7 +7,7 @@ import Foundation
 // MARK: - NotificationService
 
 @MainActor
-final class NotificationService: Sendable {
+final class NotificationService: NotificationServiceProtocol, Sendable {
 
     // MARK: - Properties
 

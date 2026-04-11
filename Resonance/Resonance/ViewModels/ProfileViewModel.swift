@@ -24,13 +24,13 @@ final class ProfileViewModel {
     var editBio = ""
     var editFavoriteGenres: [String] = []
 
-    private let userService: UserService
-    private let musicService: MusicService
-    private let storageService: StorageService
+    private let userService: any UserServiceProtocol
+    private let musicService: any MusicServiceProtocol
+    private let storageService: any StorageServiceProtocol
 
     // MARK: - Init
 
-    init(userService: UserService, musicService: MusicService, storageService: StorageService) {
+    init(userService: some UserServiceProtocol, musicService: some MusicServiceProtocol, storageService: some StorageServiceProtocol) {
         self.userService = userService
         self.musicService = musicService
         self.storageService = storageService

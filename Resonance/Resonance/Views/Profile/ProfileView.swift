@@ -58,6 +58,19 @@ struct ProfileView: View {
                 await handlePhotoSelection(newValue)
             }
         }
+        .alert(
+            String(localized: "Error"),
+            isPresented: .init(
+                get: { viewModel?.errorMessage != nil },
+                set: { if !$0 { viewModel?.errorMessage = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            if let errorMessage = viewModel?.errorMessage {
+                Text(errorMessage)
+            }
+        }
     }
 
     // MARK: - Photo Selection
