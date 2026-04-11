@@ -27,7 +27,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        FirebaseApp.configure()
+        // Firebase is configured by `ServiceContainer.init()`, which runs
+        // before this callback. Only set up notifications here.
         UNUserNotificationCenter.current().delegate = self
         registerForPushNotifications(application)
         return true

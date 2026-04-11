@@ -15,8 +15,19 @@
 		AE6E662A2F89B7A0003D6406 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66292F89B7A0003D6406 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		AEF100062F8CC00000100001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AE7B86A12F8593FA00487A85 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AE7B86A82F8593FA00487A85;
+			remoteInfo = Resonance;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		AE7B86A92F8593FA00487A85 /* Resonance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Resonance.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AEF100012F8CC00000100001 /* ResonanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ResonanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -38,6 +49,11 @@
 			path = Resonance;
 			sourceTree = "<group>";
 		};
+		AEF100022F8CC00000100001 /* ResonanceTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ResonanceTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +67,13 @@
 				AE6E66282F89B788003D6406 /* FirebaseFirestore in Frameworks */,
 				AE6E662A2F89B7A0003D6406 /* FirebaseStorage in Frameworks */,
 				AE6E66262F89B76D003D6406 /* FirebaseAuth in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AEF100042F8CC00000100001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,6 +91,7 @@
 			isa = PBXGroup;
 			children = (
 				AE7B86AB2F8593FA00487A85 /* Resonance */,
+				AEF100022F8CC00000100001 /* ResonanceTests */,
 				AE6E66222F89B752003D6406 /* Frameworks */,
 				AE7B86AA2F8593FA00487A85 /* Products */,
 			);
@@ -77,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				AE7B86A92F8593FA00487A85 /* Resonance.app */,
+				AEF100012F8CC00000100001 /* ResonanceTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -112,6 +137,27 @@
 			productReference = AE7B86A92F8593FA00487A85 /* Resonance.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AEF100082F8CC00000100001 /* ResonanceTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AEF1000B2F8CC00000100001 /* Build configuration list for PBXNativeTarget "ResonanceTests" */;
+			buildPhases = (
+				AEF100032F8CC00000100001 /* Sources */,
+				AEF100042F8CC00000100001 /* Frameworks */,
+				AEF100052F8CC00000100001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AEF100072F8CC00000100001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AEF100022F8CC00000100001 /* ResonanceTests */,
+			);
+			name = ResonanceTests;
+			productName = ResonanceTests;
+			productReference = AEF100012F8CC00000100001 /* ResonanceTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -124,6 +170,10 @@
 				TargetAttributes = {
 					AE7B86A82F8593FA00487A85 = {
 						CreatedOnToolsVersion = 26.4;
+					};
+					AEF100082F8CC00000100001 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = AE7B86A82F8593FA00487A85;
 					};
 				};
 			};
@@ -146,12 +196,20 @@
 			projectRoot = "";
 			targets = (
 				AE7B86A82F8593FA00487A85 /* Resonance */,
+				AEF100082F8CC00000100001 /* ResonanceTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		AE7B86A72F8593FA00487A85 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AEF100052F8CC00000100001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -168,7 +226,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AEF100032F8CC00000100001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AEF100072F8CC00000100001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AE7B86A82F8593FA00487A85 /* Resonance */;
+			targetProxy = AEF100062F8CC00000100001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AE7B86B22F8593FC00487A85 /* Debug */ = {
@@ -366,6 +439,48 @@
 			};
 			name = Release;
 		};
+		AEF100092F8CC00000100001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J8B37RB4S6;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sep.ResonanceTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Resonance.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Resonance";
+			};
+			name = Debug;
+		};
+		AEF1000A2F8CC00000100001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J8B37RB4S6;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sep.ResonanceTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Resonance.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Resonance";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -383,6 +498,15 @@
 			buildConfigurations = (
 				AE7B86B52F8593FC00487A85 /* Debug */,
 				AE7B86B62F8593FC00487A85 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AEF1000B2F8CC00000100001 /* Build configuration list for PBXNativeTarget "ResonanceTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AEF100092F8CC00000100001 /* Debug */,
+				AEF1000A2F8CC00000100001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

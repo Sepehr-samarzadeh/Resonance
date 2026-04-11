@@ -104,7 +104,7 @@ extension TopArtist: Codable {
 
 // MARK: - CurrentlyListening
 
-struct CurrentlyListening: Sendable {
+struct CurrentlyListening: Sendable, Equatable {
     var songId: String?
     var songName: String?
     var artistName: String?

@@ -2,6 +2,7 @@
 //  Resonance
 
 import SwiftUI
+import FirebaseCore
 
 // MARK: - ServiceContainer
 
@@ -16,7 +17,17 @@ final class ServiceContainer: Sendable {
     let notificationService: any NotificationServiceProtocol
     let storageService: any StorageServiceProtocol
 
+    /// Returns `true` when the process is hosted by XCTest / Swift Testing.
+    nonisolated static var isRunningTests: Bool {
+        NSClassFromString("XCTestCase") != nil
+            || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     init() {
+        // Firebase must be configured before any service accesses
+        // Firestore or Auth.
+        Self.ensureFirebaseConfigured()
+
         authService = AuthService()
         userService = UserService()
         musicService = MusicService()
@@ -24,6 +35,32 @@ final class ServiceContainer: Sendable {
         chatService = ChatService()
         notificationService = NotificationService()
         storageService = StorageService()
+    }
+
+    // MARK: - Firebase Configuration
+
+    nonisolated(unsafe) private static var firebaseConfigured = false
+
+    /// Ensures `FirebaseApp.configure()` is called exactly once.
+    /// In test environments, configures with a dummy project to avoid crashes.
+    private static func ensureFirebaseConfigured() {
+        guard !firebaseConfigured else { return }
+        firebaseConfigured = true
+
+        if isRunningTests {
+            // Provide a minimal configuration so Firestore/Auth/Storage
+            // don't crash at init, even though they'll never hit the network.
+            let options = FirebaseOptions(
+                googleAppID: "1:000000000000:ios:0000000000000000",
+                gcmSenderID: "000000000000"
+            )
+            options.projectID = "resonance-test"
+            options.apiKey = "fake-api-key"
+            options.storageBucket = "resonance-test.appspot.com"
+            FirebaseApp.configure(options: options)
+        } else {
+            FirebaseApp.configure()
+        }
     }
 }
 
