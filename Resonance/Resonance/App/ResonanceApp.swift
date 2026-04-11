@@ -6,6 +6,7 @@
 
 import SwiftUI
 import MusicKit
+import GoogleSignIn
 import OSLog
 
 // MARK: - ResonanceApp
@@ -42,6 +43,9 @@ struct ResonanceApp: App {
                         notificationService: services.notificationService
                     )
                 }
+            }
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
             }
         }
     }
