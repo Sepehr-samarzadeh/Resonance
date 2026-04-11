@@ -107,6 +107,7 @@ struct ChatView: View {
                     .font(.title2)
                     .foregroundStyle(.purple)
             }
+            .accessibilityLabel(String(localized: "Send message"))
             .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal)

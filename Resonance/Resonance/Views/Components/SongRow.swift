@@ -26,6 +26,7 @@ struct SongRow: View {
                     .overlay {
                         Image(systemName: "music.note")
                             .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                     }
             }
 
@@ -55,8 +56,8 @@ struct SongRow: View {
     // MARK: - Helpers
 
     private func formattedDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        return String(format: "%d:%02d", minutes, seconds)
+        Duration.seconds(duration).formatted(
+            .time(pattern: .minuteSecond)
+        )
     }
 }

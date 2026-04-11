@@ -53,6 +53,7 @@ struct NowPlayingBar: View {
                             .font(.title3)
                             .foregroundStyle(.primary)
                     }
+                    .accessibilityLabel(playerViewModel.isPlaying ? String(localized: "Pause") : String(localized: "Play"))
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
@@ -63,6 +64,8 @@ struct NowPlayingBar: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal)
+            .accessibilityElement(children: .contain)
+            .accessibilityHint(String(localized: "Opens the full player"))
         }
     }
 }

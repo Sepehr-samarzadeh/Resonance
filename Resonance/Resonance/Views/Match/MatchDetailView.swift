@@ -70,6 +70,7 @@ struct MatchDetailView: View {
                     Image(systemName: "person.fill")
                         .font(.largeTitle)
                         .foregroundStyle(.purple)
+                        .accessibilityHidden(true)
                 }
 
             Text(otherUser?.displayName ?? "")
@@ -132,6 +133,7 @@ struct MatchDetailView: View {
                     .font(.title2)
                     .foregroundStyle(.purple)
             }
+            .accessibilityLabel(String(localized: "Send message"))
             .disabled(chatViewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding()
@@ -158,5 +160,11 @@ struct ChatBubble: View {
 
             if !isFromCurrentUser { Spacer() }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            isFromCurrentUser
+                ? String(localized: "You: \(message.text)")
+                : String(localized: "Them: \(message.text)")
+        )
     }
 }

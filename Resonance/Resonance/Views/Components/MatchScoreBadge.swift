@@ -15,7 +15,7 @@ struct MatchScoreBadge: View {
 
     var body: some View {
         if let score {
-            Text("\(Int(score * 100))%")
+            Text(score, format: .percent.precision(.fractionLength(0)))
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundStyle(.white)
@@ -23,6 +23,7 @@ struct MatchScoreBadge: View {
                 .padding(.vertical, 4)
                 .background(badgeColor(for: score))
                 .clipShape(Capsule())
+                .accessibilityLabel(String(localized: "Match score: \(Int(score * 100)) percent"))
         }
     }
 

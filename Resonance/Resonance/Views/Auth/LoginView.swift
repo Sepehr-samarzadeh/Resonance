@@ -11,6 +11,7 @@ struct LoginView: View {
     // MARK: - Properties
 
     @State var authViewModel: AuthViewModel
+    @ScaledMetric(relativeTo: .largeTitle) private var appIconSize: CGFloat = 80
 
     // MARK: - Body
 
@@ -59,9 +60,10 @@ struct LoginView: View {
     private var headerSection: some View {
         VStack(spacing: 16) {
             Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 80))
+                .font(.system(size: appIconSize))
                 .foregroundStyle(.purple)
                 .symbolEffect(.pulse, isActive: true)
+                .accessibilityHidden(true)
 
             Text("Resonance")
                 .font(.largeTitle)

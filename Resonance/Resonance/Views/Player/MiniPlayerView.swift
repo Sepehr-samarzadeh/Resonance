@@ -46,6 +46,7 @@ struct MiniPlayerView: View {
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                         .font(.body)
                 }
+                .accessibilityLabel(viewModel.isPlaying ? String(localized: "Pause") : String(localized: "Play"))
                 .buttonStyle(.plain)
 
                 Button {
@@ -54,6 +55,7 @@ struct MiniPlayerView: View {
                     Image(systemName: "forward.fill")
                         .font(.caption)
                 }
+                .accessibilityLabel(String(localized: "Next track"))
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)

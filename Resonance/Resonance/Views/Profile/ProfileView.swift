@@ -163,6 +163,7 @@ struct ProfileView: View {
                 Image(systemName: "person.fill")
                     .font(.system(size: 40))
                     .foregroundStyle(.purple)
+                    .accessibilityHidden(true)
             }
             .overlay(alignment: .bottomTrailing) {
                 Image(systemName: "camera.fill")
@@ -171,7 +172,9 @@ struct ProfileView: View {
                     .padding(6)
                     .background(.purple)
                     .clipShape(Circle())
+                    .accessibilityHidden(true)
             }
+            .accessibilityLabel(String(localized: "Profile photo, tap to change"))
     }
 
     // MARK: - Stats Section

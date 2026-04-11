@@ -22,6 +22,7 @@ struct ArtistCard: View {
                     Image(systemName: "music.mic")
                         .font(.title3)
                         .foregroundStyle(.purple)
+                        .accessibilityHidden(true)
                 }
 
             Text(artist.name)
@@ -30,5 +31,7 @@ struct ArtistCard: View {
                 .lineLimit(1)
                 .frame(width: 80)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(artist.name)
     }
 }

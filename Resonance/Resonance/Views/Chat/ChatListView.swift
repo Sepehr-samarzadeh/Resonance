@@ -86,6 +86,7 @@ struct ChatRowView: View {
                     Image(systemName: "person.fill")
                         .foregroundStyle(.purple)
                 }
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(otherUser?.displayName ?? String(localized: "Loading..."))

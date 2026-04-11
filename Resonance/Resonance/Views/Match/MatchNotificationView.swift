@@ -13,15 +13,18 @@ struct MatchNotificationView: View {
     let otherUserName: String
     var onDismiss: () -> Void
     var onViewMatch: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title) private var iconSize: CGFloat = 60
 
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 60))
+                .font(.system(size: iconSize))
                 .foregroundStyle(.purple)
-                .symbolEffect(.bounce, isActive: true)
+                .symbolEffect(.bounce, isActive: !reduceMotion)
+                .accessibilityHidden(true)
 
             Text(String(localized: "New Match!"))
                 .font(.title)

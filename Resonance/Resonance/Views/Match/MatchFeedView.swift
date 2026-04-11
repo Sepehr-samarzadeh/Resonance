@@ -85,6 +85,7 @@ struct MatchCardView: View {
                     Image(systemName: match.matchType == .realtime ? "waveform" : "clock")
                         .foregroundStyle(.purple)
                 }
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(otherUser?.displayName ?? String(localized: "Loading..."))

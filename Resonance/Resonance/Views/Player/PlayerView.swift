@@ -12,6 +12,8 @@ struct PlayerView: View {
 
     @State private var viewModel: PlayerViewModel
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .largeTitle) private var playPauseSize: CGFloat = 64
+    @ScaledMetric(relativeTo: .title) private var artworkPlaceholderIconSize: CGFloat = 60
 
     init(viewModel: PlayerViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -64,6 +66,7 @@ struct PlayerView: View {
             .fill(.secondary)
             .frame(width: 40, height: 5)
             .padding(.top, 8)
+            .accessibilityHidden(true)
     }
 
     // MARK: - Artwork Section
@@ -80,8 +83,9 @@ struct PlayerView: View {
                 .frame(width: 300, height: 300)
                 .overlay {
                     Image(systemName: "music.note")
-                        .font(.system(size: 60))
+                        .font(.system(size: artworkPlaceholderIconSize))
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                 }
         }
     }
@@ -114,14 +118,16 @@ struct PlayerView: View {
                     .font(.title2)
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel(String(localized: "Previous track"))
 
             Button {
                 Task { await viewModel.togglePlayback() }
             } label: {
                 Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 64))
+                    .font(.system(size: playPauseSize))
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel(viewModel.isPlaying ? String(localized: "Pause") : String(localized: "Play"))
 
             Button {
                 Task { await viewModel.skipToNext() }
@@ -130,6 +136,7 @@ struct PlayerView: View {
                     .font(.title2)
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel(String(localized: "Next track"))
         }
     }
 }

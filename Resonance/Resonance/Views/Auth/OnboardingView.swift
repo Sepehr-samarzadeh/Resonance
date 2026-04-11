@@ -11,8 +11,11 @@ struct OnboardingView: View {
     // MARK: - Properties
 
     @Environment(\.services) private var services
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentPage = 0
     @State private var musicAuthStatus: MusicAuthorization.Status = .notDetermined
+    @ScaledMetric(relativeTo: .largeTitle) private var largeIconSize: CGFloat = 80
+    @ScaledMetric(relativeTo: .title) private var mediumIconSize: CGFloat = 60
     var onComplete: () -> Void
 
     // MARK: - Body
@@ -49,8 +52,9 @@ struct OnboardingView: View {
             Spacer()
 
             Image(systemName: "music.note.list")
-                .font(.system(size: 80))
+                .font(.system(size: largeIconSize))
                 .foregroundStyle(.purple)
+                .accessibilityHidden(true)
 
             Text(String(localized: "Welcome to Resonance"))
                 .font(.largeTitle)
@@ -78,8 +82,9 @@ struct OnboardingView: View {
             Spacer()
 
             Image(systemName: "apple.logo")
-                .font(.system(size: 60))
+                .font(.system(size: mediumIconSize))
                 .foregroundStyle(.white)
+                .accessibilityHidden(true)
 
             Text(String(localized: "Apple Music Access"))
                 .font(.title)
@@ -127,9 +132,10 @@ struct OnboardingView: View {
             Spacer()
 
             Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 80))
+                .font(.system(size: largeIconSize))
                 .foregroundStyle(.purple)
-                .symbolEffect(.bounce, isActive: true)
+                .symbolEffect(.bounce, isActive: !reduceMotion)
+                .accessibilityHidden(true)
 
             Text(String(localized: "You're All Set"))
                 .font(.largeTitle)
