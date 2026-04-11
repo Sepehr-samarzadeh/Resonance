@@ -6,6 +6,7 @@
 
 import SwiftUI
 import MusicKit
+import OSLog
 
 // MARK: - ResonanceApp
 
@@ -97,6 +98,7 @@ struct MainTabView: View {
     let appDelegate: AppDelegate
     @State private var playerViewModel: PlayerViewModel?
     @State private var matchViewModel: MatchViewModel?
+    @State private var networkMonitor = NetworkMonitor()
     @State private var selectedTab = 0
     @State private var showPlayer = false
 
@@ -201,6 +203,13 @@ struct MainTabView: View {
             }
             .padding(.bottom, 50)
 
+            // Offline indicator
+            if !networkMonitor.isConnected {
+                offlineBanner
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(99)
+            }
+
             // Match notification overlay
             if let match = pendingMatchNotification,
                let userName = matchNotificationUserName {
@@ -233,6 +242,29 @@ struct MainTabView: View {
             appDelegate.pendingDeepLink = nil
         }
         .animation(.spring(duration: 0.4), value: pendingMatchNotification != nil)
+        .animation(.easeInOut(duration: 0.3), value: networkMonitor.isConnected)
+    }
+
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
+        VStack {
+            HStack(spacing: 8) {
+                Image(systemName: "wifi.slash")
+                    .font(.subheadline)
+                Text(String(localized: "No internet connection"))
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.red.gradient, in: Capsule())
+            .padding(.top, 4)
+
+            Spacer()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(localized: "No internet connection"))
     }
 
     // MARK: - Deep Link Handling
@@ -315,7 +347,7 @@ struct MainTabView: View {
                 )
             }
         } catch {
-            print("MainTabView: Historical matching error — \(error.localizedDescription)")
+            Log.match.error("Historical matching error: \(error.localizedDescription)")
         }
     }
 }

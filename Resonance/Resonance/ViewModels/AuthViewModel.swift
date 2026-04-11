@@ -3,6 +3,7 @@
 
 import Foundation
 import AuthenticationServices
+import OSLog
 
 // MARK: - AuthViewModel
 
@@ -154,7 +155,7 @@ final class AuthViewModel {
         do {
             currentUser = try await userService.fetchUser(userId: userId)
         } catch {
-            print("AuthViewModel: Failed to load user profile — \(error.localizedDescription)")
+            Log.auth.error("Failed to load user profile: \(error.localizedDescription)")
         }
     }
 }

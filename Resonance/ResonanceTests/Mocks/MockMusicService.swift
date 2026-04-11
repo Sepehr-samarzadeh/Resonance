@@ -36,6 +36,9 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
     var stubbedSkipToNextError: Error?
     var stubbedSkipToPreviousError: Error?
 
+    /// Continuation exposed so tests can yield values into the now-playing stream.
+    var nowPlayingContinuation: AsyncStream<Void>.Continuation?
+
     // MARK: - Stubbed MusicItem/ListeningSession
 
     /// Stored as `nonisolated(unsafe)` so the `nonisolated` protocol methods
@@ -105,6 +108,12 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
     func skipToPrevious() async throws {
         skipToPreviousCallCount += 1
         if let error = stubbedSkipToPreviousError { throw error }
+    }
+
+    func nowPlayingChanges() -> AsyncStream<Void> {
+        AsyncStream { continuation in
+            self.nowPlayingContinuation = continuation
+        }
     }
 
     nonisolated func musicItem(from song: Song) -> Resonance.MusicItem {

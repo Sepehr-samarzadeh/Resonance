@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+import OSLog
 @preconcurrency import FirebaseFirestore
 
 // MARK: - MatchService
@@ -231,7 +232,7 @@ actor MatchService: MatchServiceProtocol {
                 .order(by: "createdAt", descending: true)
                 .addSnapshotListener { snapshot, error in
                     if let error {
-                        print("MatchService: Error listening to matches — \(error.localizedDescription)")
+                        Log.match.error("Error listening to matches: \(error.localizedDescription)")
                         return
                     }
                     let matches = snapshot?.documents.compactMap { doc -> Match? in

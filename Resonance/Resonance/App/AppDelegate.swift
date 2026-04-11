@@ -6,6 +6,7 @@ import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 import UserNotifications
+import OSLog
 
 // MARK: - AppDelegate
 
@@ -54,7 +55,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
         let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-        print("AppDelegate: APNs device token — \(tokenString)")
+        Log.notification.info("APNs device token received")
 
         // Store the token for post-sign-in registration
         latestDeviceToken = tokenString
@@ -64,7 +65,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
                 do {
                     try await notificationService?.registerDeviceToken(tokenString, forUserId: userId)
                 } catch {
-                    print("AppDelegate: Failed to register device token — \(error.localizedDescription)")
+                    Log.notification.error("Failed to register device token: \(error.localizedDescription)")
                 }
             }
         }
@@ -74,7 +75,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
-        print("AppDelegate: Failed to register for remote notifications — \(error.localizedDescription)")
+        Log.notification.error("Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
     // MARK: - Private
@@ -87,7 +88,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
                     application.registerForRemoteNotifications()
                 }
             } catch {
-                print("AppDelegate: Notification auth error — \(error.localizedDescription)")
+                Log.notification.error("Notification authorization error: \(error.localizedDescription)")
             }
         }
     }

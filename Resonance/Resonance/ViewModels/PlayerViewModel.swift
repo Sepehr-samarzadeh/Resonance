@@ -3,6 +3,7 @@
 
 import Foundation
 import MusicKit
+import OSLog
 
 // MARK: - PlayerViewModel
 
@@ -88,15 +89,17 @@ final class PlayerViewModel {
 
     // MARK: - Now Playing Observation
 
-    /// Starts continuously observing the now-playing state from both
-    /// the in-app player and the system player (Apple Music app).
+    /// Starts observing playback state changes from both the in-app player
+    /// and the system player using MusicKit's change notifications.
     func startObservingNowPlaying() {
         stopObservingNowPlaying()
         nowPlayingTask = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
+            guard let self else { return }
+            // Sync once immediately
+            self.syncNowPlaying()
+            for await _ in self.musicService.nowPlayingChanges() {
+                guard !Task.isCancelled else { break }
                 self.syncNowPlaying()
-                try? await Task.sleep(for: .seconds(2))
             }
         }
     }
@@ -124,7 +127,7 @@ final class PlayerViewModel {
         do {
             try await userService.saveListeningSession(userId: userId, session: session)
         } catch {
-            print("PlayerViewModel: Failed to save listening session — \(error.localizedDescription)")
+            Log.music.error("Failed to save listening session: \(error.localizedDescription)")
         }
     }
 }

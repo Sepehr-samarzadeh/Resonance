@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+import OSLog
 @preconcurrency import FirebaseFirestore
 
 // MARK: - ChatService
@@ -69,7 +70,7 @@ actor ChatService: ChatServiceProtocol {
                 .order(by: "createdAt", descending: false)
                 .addSnapshotListener { snapshot, error in
                     if let error {
-                        print("ChatService: Error listening to messages — \(error.localizedDescription)")
+                        Log.chat.error("Error listening to messages: \(error.localizedDescription)")
                         return
                     }
                     let messages = snapshot?.documents.compactMap { doc -> Message? in

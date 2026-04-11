@@ -2,6 +2,7 @@
 //  Resonance
 
 import SwiftUI
+import OSLog
 
 // MARK: - ChatView
 
@@ -42,13 +43,12 @@ struct ChatView: View {
                 do {
                     otherUser = try await services.userService.fetchUser(userId: otherUserId)
                 } catch {
-                    print("ChatView: Failed to load other user — \(error.localizedDescription)")
+                    Log.ui.error("Failed to load other user: \(error.localizedDescription)")
                 }
             }
 
             if let matchId = match.id {
-                await viewModel?.listenForMessages(matchId: matchId)
-                await viewModel?.markAsRead(matchId: matchId, currentUserId: currentUserId)
+                await viewModel?.listenForMessages(matchId: matchId, currentUserId: currentUserId)
             }
         }
     }

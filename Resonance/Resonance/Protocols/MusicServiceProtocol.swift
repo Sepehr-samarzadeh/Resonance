@@ -46,6 +46,10 @@ protocol MusicServiceProtocol: Sendable {
     /// Returns `true` if either player is currently playing.
     var isAnyPlayerPlaying: Bool { get }
 
+    /// Returns an `AsyncStream` that emits a value whenever the playback state
+    /// changes on either the in-app or system music player.
+    func nowPlayingChanges() -> AsyncStream<Void>
+
     /// Converts a MusicKit `Song` to a lightweight `MusicItem`.
     nonisolated func musicItem(from song: Song) -> MusicItem
 

@@ -3,6 +3,7 @@
 
 import Foundation
 import MusicKit
+import OSLog
 
 // MARK: - ProfileViewModel
 
@@ -122,7 +123,7 @@ final class ProfileViewModel {
             try await userService.updateTopArtists(userId: userId, artists: topArtists)
             user = try await userService.fetchUser(userId: userId)
         } catch {
-            print("ProfileViewModel: Failed to auto-populate top artists — \(error.localizedDescription)")
+            Log.user.error("Failed to auto-populate top artists: \(error.localizedDescription)")
         }
     }
 

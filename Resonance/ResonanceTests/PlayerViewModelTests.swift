@@ -140,8 +140,11 @@ struct PlayerViewModelTests {
 
         vm.startObservingNowPlaying()
 
-        // Wait for one polling cycle
-        try? await Task.sleep(for: .milliseconds(100))
+        // Yield a change into the mock stream so the observer fires
+        music.nowPlayingContinuation?.yield()
+
+        // Give the stream time to deliver
+        try? await Task.sleep(for: .milliseconds(50))
 
         #expect(vm.isPlaying == true)
 

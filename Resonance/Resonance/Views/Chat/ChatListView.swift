@@ -2,6 +2,7 @@
 //  Resonance
 
 import SwiftUI
+import OSLog
 
 // MARK: - ChatListView
 
@@ -127,7 +128,7 @@ struct ChatRowView: View {
             do {
                 otherUser = try await services.userService.fetchUser(userId: otherUserId)
             } catch {
-                print("ChatRowView: Failed to load other user — \(error.localizedDescription)")
+                Log.ui.error("Failed to load other user: \(error.localizedDescription)")
             }
         }
     }

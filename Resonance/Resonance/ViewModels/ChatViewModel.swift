@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+import OSLog
 
 // MARK: - ChatViewModel
 
@@ -42,9 +43,20 @@ final class ChatViewModel {
     // MARK: - Listen for Messages
 
     /// Starts listening for real-time message updates.
-    func listenForMessages(matchId: String) async {
+    /// Automatically marks incoming messages from other users as read.
+    func listenForMessages(matchId: String, currentUserId: String? = nil) async {
         for await updatedMessages in await chatService.messageChanges(matchId: matchId) {
             messages = updatedMessages
+
+            // Auto-mark messages as read when new messages from others arrive
+            if let currentUserId {
+                let hasUnreadFromOthers = updatedMessages.contains { message in
+                    message.senderId != currentUserId && !message.isRead
+                }
+                if hasUnreadFromOthers {
+                    await markAsRead(matchId: matchId, currentUserId: currentUserId)
+                }
+            }
         }
     }
 
@@ -71,7 +83,7 @@ final class ChatViewModel {
         do {
             try await chatService.markMessagesAsRead(matchId: matchId, currentUserId: currentUserId)
         } catch {
-            print("ChatViewModel: Failed to mark messages as read — \(error.localizedDescription)")
+            Log.chat.error("Failed to mark messages as read: \(error.localizedDescription)")
         }
     }
 }

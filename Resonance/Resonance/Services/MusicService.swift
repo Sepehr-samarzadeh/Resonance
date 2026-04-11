@@ -3,6 +3,7 @@
 
 import Foundation
 import MusicKit
+import Combine
 
 // MARK: - MusicService
 
@@ -173,6 +174,25 @@ final class MusicService: MusicServiceProtocol {
     /// Returns `true` if either player is currently playing.
     var isAnyPlayerPlaying: Bool {
         appPlaybackStatus == .playing || isSystemPlayerPlaying
+    }
+
+    // MARK: - Now Playing Changes Stream
+
+    /// Merges `objectWillChange` from both the application and system music
+    /// player states into a single `AsyncStream<Void>` so observers can
+    /// react to any playback state change without polling.
+    func nowPlayingChanges() -> AsyncStream<Void> {
+        AsyncStream { continuation in
+            nonisolated(unsafe) let appSub = ApplicationMusicPlayer.shared.state.objectWillChange
+                .sink { _ in continuation.yield() }
+            nonisolated(unsafe) let sysSub = SystemMusicPlayer.shared.state.objectWillChange
+                .sink { _ in continuation.yield() }
+
+            continuation.onTermination = { @Sendable _ in
+                appSub.cancel()
+                sysSub.cancel()
+            }
+        }
     }
 
     // MARK: - Conversion Helpers

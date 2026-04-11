@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+import OSLog
 @preconcurrency import FirebaseFirestore
 
 // MARK: - UserService
@@ -149,7 +150,7 @@ actor UserService: UserServiceProtocol {
             let listener = db.collection(usersCollection).document(userId)
                 .addSnapshotListener { snapshot, error in
                     if let error {
-                        print("UserService: Error listening to user changes — \(error.localizedDescription)")
+                        Log.user.error("Error listening to user changes: \(error.localizedDescription)")
                         return
                     }
                     guard let snapshot, snapshot.exists, let dict = snapshot.data() else {

@@ -3,6 +3,7 @@
 
 import Foundation
 import MusicKit
+import OSLog
 
 // MARK: - HomeViewModel
 
@@ -59,7 +60,7 @@ final class HomeViewModel {
                 try await userService.updateCurrentlyListening(userId: userId, listening: nil)
             }
         } catch {
-            print("HomeViewModel: Failed to update currently listening — \(error.localizedDescription)")
+            Log.music.error("Failed to update currently listening: \(error.localizedDescription)")
         }
     }
 }

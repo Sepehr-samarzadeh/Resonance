@@ -129,6 +129,36 @@ struct ChatViewModelTests {
         #expect(vm.messages[0].text == "Live message")
     }
 
+    @Test("listenForMessages auto-marks unread messages from others as read")
+    func listenForMessagesAutoRead() async {
+        let chat = MockChatService()
+        let testMessages = [
+            TestData.makeMessage(id: "msg-1", senderId: "user-2", text: "Hey", isRead: false),
+        ]
+        chat.stubbedMessageChanges = [testMessages]
+
+        let (vm, _) = makeSUT(chatService: chat)
+
+        await vm.listenForMessages(matchId: "match-1", currentUserId: "user-1")
+
+        #expect(chat.markMessagesAsReadCallCount == 1)
+    }
+
+    @Test("listenForMessages does not mark own messages as read")
+    func listenForMessagesNoAutoReadForOwnMessages() async {
+        let chat = MockChatService()
+        let testMessages = [
+            TestData.makeMessage(id: "msg-1", senderId: "user-1", text: "My message", isRead: false),
+        ]
+        chat.stubbedMessageChanges = [testMessages]
+
+        let (vm, _) = makeSUT(chatService: chat)
+
+        await vm.listenForMessages(matchId: "match-1", currentUserId: "user-1")
+
+        #expect(chat.markMessagesAsReadCallCount == 0)
+    }
+
     // MARK: - Mark as Read
 
     @Test("markAsRead calls chatService.markMessagesAsRead")

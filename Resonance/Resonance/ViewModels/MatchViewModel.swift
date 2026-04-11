@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+import OSLog
 
 // MARK: - MatchViewModel
 
@@ -126,7 +127,7 @@ final class MatchViewModel {
                 return newMatch
             }
         } catch {
-            print("MatchViewModel: Failed to check for realtime match — \(error.localizedDescription)")
+            Log.match.error("Failed to check for realtime match: \(error.localizedDescription)")
         }
 
         return nil

@@ -2,6 +2,7 @@
 //  Resonance
 
 import SwiftUI
+import OSLog
 
 // MARK: - MatchDetailView
 
@@ -37,7 +38,7 @@ struct MatchDetailView: View {
             do {
                 otherUser = try await services.userService.fetchUser(userId: otherUserId)
             } catch {
-                print("MatchDetailView: Failed to load other user — \(error.localizedDescription)")
+                Log.ui.error("Failed to load other user: \(error.localizedDescription)")
             }
 
             if let matchId = match.id {
