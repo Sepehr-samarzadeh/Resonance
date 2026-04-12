@@ -167,6 +167,7 @@ struct ProfileContentView: View {
 
                     // Settings & account
                     ProfileSettingsSection(
+                        currentUserId: currentUserId,
                         userEmail: viewModel.user?.email,
                         authProvider: viewModel.user?.authProvider,
                         onSignOut: onSignOut

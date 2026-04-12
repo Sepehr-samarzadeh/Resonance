@@ -214,14 +214,22 @@ private struct MainTabContent: View {
 
     // MARK: - Body
 
+    /// Whether a navigation destination is pushed on the Matches or Messages tab.
+    private var isInNestedNavigation: Bool {
+        !matchesNavPath.isEmpty || !messagesNavPath.isEmpty
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             tabView
 
-            NowPlayingBar(playerViewModel: playerViewModel) {
-                showPlayer = true
+            if !isInNestedNavigation {
+                NowPlayingBar(playerViewModel: playerViewModel) {
+                    showPlayer = true
+                }
+                .padding(.bottom, 50)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .padding(.bottom, 50)
 
             OfflineBanner(networkMonitor: networkMonitor)
 
@@ -231,6 +239,7 @@ private struct MainTabContent: View {
                 selectedTab: $selectedTab
             )
         }
+        .animation(.easeInOut(duration: 0.25), value: isInNestedNavigation)
         .sheet(isPresented: $showPlayer) {
             PlayerView(viewModel: playerViewModel)
                 .presentationDragIndicator(.hidden)

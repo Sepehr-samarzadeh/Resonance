@@ -15,6 +15,7 @@ struct MatchDetailView: View {
 
     @Environment(\.services) private var services
     @State private var otherUser: ResonanceUser?
+    @State private var didLoadUser = false
     @State private var chatViewModel: ChatViewModel?
 
     // MARK: - Body
@@ -27,19 +28,23 @@ struct MatchDetailView: View {
                 ProgressView()
             }
         }
-        .navigationTitle(otherUser?.displayName ?? String(localized: "Match"))
+        .navigationTitle(otherUser?.displayName ?? (didLoadUser ? String(localized: "Resonance User") : String(localized: "Match")))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if chatViewModel == nil {
                 chatViewModel = ChatViewModel(chatService: services.chatService)
             }
 
-            guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else { return }
+            guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else {
+                didLoadUser = true
+                return
+            }
             do {
                 otherUser = try await services.userService.fetchUser(userId: otherUserId)
             } catch {
                 Log.ui.error("Failed to load other user: \(error.localizedDescription)")
             }
+            didLoadUser = true
 
             if let matchId = match.id {
                 await chatViewModel?.listenForMessages(matchId: matchId)

@@ -99,6 +99,7 @@ struct MatchCardView: View {
 
     @Environment(\.services) private var services
     @State private var otherUser: ResonanceUser?
+    @State private var didLoadUser = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -109,7 +110,7 @@ struct MatchCardView: View {
             )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(otherUser?.displayName ?? String(localized: "Loading..."))
+                Text(otherUser?.displayName ?? (didLoadUser ? String(localized: "Resonance User") : String(localized: "Loading...")))
                     .font(.headline)
 
                 if let song = match.triggerSong {
@@ -131,12 +132,16 @@ struct MatchCardView: View {
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
-            guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else { return }
+            guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else {
+                didLoadUser = true
+                return
+            }
             do {
                 otherUser = try await services.userService.fetchUser(userId: otherUserId)
             } catch {
                 Log.ui.error("Failed to load other user: \(error.localizedDescription)")
             }
+            didLoadUser = true
         }
     }
 }

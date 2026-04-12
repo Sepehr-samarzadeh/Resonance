@@ -13,12 +13,13 @@ struct ChatView: View {
     @Environment(\.services) private var services
     @State private var viewModel: ChatViewModel?
     @State private var otherUser: ResonanceUser?
+    @State private var didLoadUser = false
 
     let match: Match
     let currentUserId: String
 
     private var otherUserName: String {
-        otherUser?.displayName ?? String(localized: "Chat")
+        otherUser?.displayName ?? (didLoadUser ? String(localized: "Resonance User") : String(localized: "Chat"))
     }
 
     // MARK: - Body
@@ -46,6 +47,7 @@ struct ChatView: View {
                     Log.ui.error("Failed to load other user: \(error.localizedDescription)")
                 }
             }
+            didLoadUser = true
         }
         .task(id: match.id) {
             guard let matchId = match.id else { return }
