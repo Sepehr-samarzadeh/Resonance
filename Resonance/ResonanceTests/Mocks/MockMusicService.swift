@@ -176,4 +176,33 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
         fetchProfilePhotoURLCallCount += 1
         return stubbedProfilePhotoURL
     }
+
+    // MARK: - Library
+
+    var fetchUserPlaylistsCallCount = 0
+    var stubbedUserPlaylists: [Playlist] = []
+    var fetchPlaylistTracksCallCount = 0
+    var stubbedPlaylistTracks: [Song] = []
+    var fetchLibraryArtistNamesCallCount = 0
+    var stubbedLibraryArtistNames: [String] = []
+
+    func fetchUserPlaylists() async throws -> [Playlist] {
+        fetchUserPlaylistsCallCount += 1
+        return stubbedUserPlaylists
+    }
+
+    func fetchPlaylistTracks(playlistId: String) async throws -> [Song] {
+        fetchPlaylistTracksCallCount += 1
+        return stubbedPlaylistTracks
+    }
+
+    func fetchLibraryArtistNames(limit: Int) async throws -> [String] {
+        fetchLibraryArtistNamesCallCount += 1
+        return stubbedLibraryArtistNames
+    }
+
+    func play(songs: [Song], startingAt index: Int) async throws {
+        playCallCount += 1
+        if let error = stubbedPlayError { throw error }
+    }
 }

@@ -148,4 +148,45 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
             continuation.finish()
         }
     }
+
+    // MARK: - Taste Profile
+
+    var saveTasteProfileCallCount = 0
+    var capturedTasteProfile: TasteProfile?
+    var stubbedSaveTasteProfileError: Error?
+    var stubbedFetchTasteProfileResult: TasteProfile?
+
+    func saveTasteProfile(userId: String, profile: TasteProfile) async throws {
+        saveTasteProfileCallCount += 1
+        capturedTasteProfile = profile
+        if let error = stubbedSaveTasteProfileError { throw error }
+    }
+
+    func fetchTasteProfile(userId: String) async throws -> TasteProfile? {
+        stubbedFetchTasteProfileResult
+    }
+
+    // MARK: - Imported Playlists
+
+    var saveImportedPlaylistCallCount = 0
+    var fetchImportedPlaylistsCallCount = 0
+    var deleteImportedPlaylistCallCount = 0
+    var stubbedImportedPlaylists: [ImportedPlaylist] = []
+    var stubbedSaveImportedPlaylistError: Error?
+    var stubbedDeleteImportedPlaylistError: Error?
+
+    func saveImportedPlaylist(userId: String, playlist: ImportedPlaylist) async throws {
+        saveImportedPlaylistCallCount += 1
+        if let error = stubbedSaveImportedPlaylistError { throw error }
+    }
+
+    func fetchImportedPlaylists(userId: String) async throws -> [ImportedPlaylist] {
+        fetchImportedPlaylistsCallCount += 1
+        return stubbedImportedPlaylists
+    }
+
+    func deleteImportedPlaylist(userId: String, playlistId: String) async throws {
+        deleteImportedPlaylistCallCount += 1
+        if let error = stubbedDeleteImportedPlaylistError { throw error }
+    }
 }

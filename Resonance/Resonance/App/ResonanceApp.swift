@@ -70,7 +70,7 @@ struct RootView: View {
                     MainTabView(authViewModel: authViewModel, appDelegate: appDelegate)
                         .transition(.opacity)
                 } else {
-                    OnboardingView {
+                    OnboardingView(currentUserId: authViewModel.currentUserId ?? "") {
                         onboardingCompleted = true
                     }
                     .transition(.opacity)

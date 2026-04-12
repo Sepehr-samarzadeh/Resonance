@@ -3,6 +3,7 @@
 
 import SwiftUI
 import MusicKit
+import OSLog
 
 // MARK: - OnboardingView
 
@@ -14,8 +15,14 @@ struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentPage = 0
     @State private var musicAuthStatus: MusicAuthorization.Status = .notDetermined
+    @State private var selectedGenres: Set<String> = []
+    @State private var selectedArtists: [TasteArtist] = []
+    @State private var libraryArtistNames: [String] = []
+    @State private var isSaving = false
     @ScaledMetric(relativeTo: .largeTitle) private var largeIconSize: CGFloat = 80
     @ScaledMetric(relativeTo: .title) private var mediumIconSize: CGFloat = 60
+
+    let currentUserId: String
     var onComplete: () -> Void
 
     // MARK: - Body
@@ -29,8 +36,21 @@ struct OnboardingView: View {
                 musicAccessPage
                     .tag(1)
 
+                OnboardingGenreView(selectedGenres: $selectedGenres) {
+                    withAnimation { currentPage = 3 }
+                }
+                .tag(2)
+
+                OnboardingArtistView(
+                    selectedArtists: $selectedArtists,
+                    libraryArtistNames: $libraryArtistNames
+                ) {
+                    withAnimation { currentPage = 4 }
+                }
+                .tag(3)
+
                 readyPage
-                    .tag(2)
+                    .tag(4)
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
@@ -151,16 +171,23 @@ struct OnboardingView: View {
             Spacer()
 
             Button {
-                onComplete()
+                Task { await saveTasteProfileAndComplete() }
             } label: {
-                Text(String(localized: "Get Started"))
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(.musicRed)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                HStack(spacing: 8) {
+                    if isSaving {
+                        ProgressView()
+                            .tint(.white)
+                    }
+                    Text(String(localized: "Get Started"))
+                        .fontWeight(.bold)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(.musicRed)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .disabled(isSaving)
             .padding(.horizontal, 40)
             .padding(.bottom, 40)
         }
@@ -185,5 +212,42 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 40)
         .padding(.bottom, 40)
+    }
+
+    // MARK: - Save Taste Profile
+
+    /// Saves the user's taste profile to Firestore, then completes onboarding.
+    private func saveTasteProfileAndComplete() async {
+        guard !currentUserId.isEmpty else {
+            onComplete()
+            return
+        }
+
+        isSaving = true
+
+        let profile = TasteProfile(
+            selectedGenres: Array(selectedGenres),
+            selectedArtists: selectedArtists,
+            libraryArtistNames: libraryArtistNames,
+            updatedAt: Date()
+        )
+
+        do {
+            try await services.userService.saveTasteProfile(userId: currentUserId, profile: profile)
+
+            // Also update favoriteGenres and topArtists on the main user doc
+            // so they show up on the profile immediately
+            try await services.userService.updateFavoriteGenres(userId: currentUserId, genres: Array(selectedGenres))
+
+            let topArtists = selectedArtists.map { artist in
+                TopArtist(id: artist.id, name: artist.name, artworkURL: artist.artworkURL)
+            }
+            try await services.userService.updateTopArtists(userId: currentUserId, artists: topArtists)
+        } catch {
+            Log.auth.error("Failed to save taste profile: \(error.localizedDescription)")
+        }
+
+        isSaving = false
+        onComplete()
     }
 }

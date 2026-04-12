@@ -100,4 +100,8 @@ protocol MusicServiceProtocol: Sendable {
 
     /// Fetches the tracks (songs) inside a playlist by its catalog/library ID.
     func fetchPlaylistTracks(playlistId: String) async throws -> [Song]
+
+    /// Fetches unique artist names from the user's Apple Music library.
+    /// Used during onboarding to build the taste profile for matching.
+    func fetchLibraryArtistNames(limit: Int) async throws -> [String]
 }

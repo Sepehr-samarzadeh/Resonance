@@ -46,6 +46,16 @@ protocol UserServiceProtocol: Sendable {
     /// Updates the user's currently listening status.
     func updateCurrentlyListening(userId: String, listening: CurrentlyListening?) async throws
 
+    // MARK: - Taste Profile
+
+    /// Saves or updates the user's taste profile (genres, artists, library data).
+    func saveTasteProfile(userId: String, profile: TasteProfile) async throws
+
+    /// Fetches just the taste profile for a user.
+    func fetchTasteProfile(userId: String) async throws -> TasteProfile?
+
+    // MARK: - Listening History
+
     /// Saves a listening session to the user's history subcollection.
     func saveListeningSession(userId: String, session: ListeningSession) async throws
 

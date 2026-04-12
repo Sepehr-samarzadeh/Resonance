@@ -312,6 +312,30 @@ final class MusicService: MusicServiceProtocol {
         return Array(response.items)
     }
 
+    // MARK: - User Library Artists
+
+    /// Fetches unique artist names from the user's Apple Music library.
+    /// Scans library songs and extracts distinct artist names for taste matching.
+    /// - Parameter limit: Maximum number of songs to scan (default 500).
+    /// - Returns: An array of unique, lowercased artist names.
+    func fetchLibraryArtistNames(limit: Int = 500) async throws -> [String] {
+        var request = MusicLibraryRequest<Song>()
+        request.limit = limit
+        let response = try await request.response()
+
+        var seen = Set<String>()
+        var artists: [String] = []
+
+        for song in response.items {
+            let normalized = song.artistName.lowercased()
+            if seen.insert(normalized).inserted {
+                artists.append(normalized)
+            }
+        }
+
+        return artists
+    }
+
     /// Fetches the tracks (songs) inside a playlist by its ID.
     ///
     /// Library playlists (IDs starting with `p.`) are fetched from the user's

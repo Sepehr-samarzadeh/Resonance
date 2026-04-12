@@ -124,24 +124,85 @@ actor MatchService: MatchServiceProtocol {
 
     // MARK: - Historical Matching
 
-    /// Calculates a similarity score between two users based on their listening history.
-    /// - Parameters:
-    ///   - userId1: First user's ID.
-    ///   - userId2: Second user's ID.
-    /// - Returns: A score between 0.0 and 1.0 indicating listening taste similarity.
+    /// Calculates a similarity score between two users based on their listening history
+    /// and taste profiles (genres, selected artists, library artists).
+    ///
+    /// The final score is a weighted combination:
+    /// - 30% genre overlap (from taste profile)
+    /// - 30% artist overlap (selected artists + library artists from taste profile)
+    /// - 40% listening history overlap (from listening sessions)
+    ///
+    /// If taste profiles are available but listening history is empty, the score
+    /// is based entirely on taste profile data, allowing new users to match immediately.
     func calculateSimilarity(userId1: String, userId2: String) async throws -> Double {
-        let history1 = try await fetchListeningArtists(userId: userId1)
-        let history2 = try await fetchListeningArtists(userId: userId2)
+        // Fetch taste profiles and listening history in parallel
+        async let profile1Task = fetchTasteProfile(userId: userId1)
+        async let profile2Task = fetchTasteProfile(userId: userId2)
+        async let history1Task = fetchListeningArtists(userId: userId1)
+        async let history2Task = fetchListeningArtists(userId: userId2)
 
-        guard !history1.isEmpty, !history2.isEmpty else { return 0.0 }
+        let profile1 = try await profile1Task
+        let profile2 = try await profile2Task
+        let history1 = try await history1Task
+        let history2 = try await history2Task
 
-        let set1 = Set(history1)
-        let set2 = Set(history2)
+        // Calculate genre similarity from taste profiles
+        let genreScore = Self.jaccardSimilarity(
+            Set(profile1?.selectedGenres.map { $0.lowercased() } ?? []),
+            Set(profile2?.selectedGenres.map { $0.lowercased() } ?? [])
+        )
+
+        // Calculate artist similarity from taste profiles
+        // Combine selected artist names + library artist names into one set per user
+        let artistNames1 = Self.buildArtistNameSet(from: profile1)
+        let artistNames2 = Self.buildArtistNameSet(from: profile2)
+        let tasteArtistScore = Self.jaccardSimilarity(artistNames1, artistNames2)
+
+        // Calculate listening history similarity
+        let historyScore = Self.jaccardSimilarity(Set(history1), Set(history2))
+
+        // Determine weights based on data availability
+        let hasTasteData = (profile1 != nil && profile2 != nil)
+            && (!artistNames1.isEmpty || !artistNames2.isEmpty
+                || !(profile1?.selectedGenres.isEmpty ?? true)
+                || !(profile2?.selectedGenres.isEmpty ?? true))
+        let hasHistoryData = !history1.isEmpty && !history2.isEmpty
+
+        switch (hasTasteData, hasHistoryData) {
+        case (true, true):
+            // All data available — weighted blend
+            return genreScore * 0.3 + tasteArtistScore * 0.3 + historyScore * 0.4
+        case (true, false):
+            // Only taste profile — split evenly between genre and artist
+            return genreScore * 0.5 + tasteArtistScore * 0.5
+        case (false, true):
+            // Only listening history
+            return historyScore
+        case (false, false):
+            // No data at all
+            return 0.0
+        }
+    }
+
+    // MARK: - Similarity Helpers
+
+    /// Computes Jaccard similarity between two sets.
+    private nonisolated static func jaccardSimilarity(_ set1: Set<String>, _ set2: Set<String>) -> Double {
+        guard !set1.isEmpty || !set2.isEmpty else { return 0.0 }
         let intersection = set1.intersection(set2)
         let union = set1.union(set2)
-
         guard !union.isEmpty else { return 0.0 }
         return Double(intersection.count) / Double(union.count)
+    }
+
+    /// Builds a combined set of lowercased artist names from a taste profile.
+    private nonisolated static func buildArtistNameSet(from profile: TasteProfile?) -> Set<String> {
+        guard let profile else { return [] }
+        var names = Set(profile.libraryArtistNames) // already lowercased
+        for artist in profile.selectedArtists {
+            names.insert(artist.name.lowercased())
+        }
+        return names
     }
 
     /// Creates a historical match between two users if their similarity exceeds the threshold.
@@ -274,6 +335,7 @@ actor MatchService: MatchServiceProtocol {
 
     // MARK: - Private Helpers
 
+    /// Fetches artist names from a user's listening history.
     private func fetchListeningArtists(userId: String) async throws -> [String] {
         let snapshot = try await db.collection("listeningHistory")
             .document(userId)
@@ -283,7 +345,16 @@ actor MatchService: MatchServiceProtocol {
             .getDocuments()
 
         return snapshot.documents.compactMap { doc in
-            doc.data()["artistName"] as? String
+            (doc.data()["artistName"] as? String)?.lowercased()
         }
+    }
+
+    /// Fetches a user's taste profile from their user document.
+    private func fetchTasteProfile(userId: String) async throws -> TasteProfile? {
+        let snapshot = try await db.collection("users").document(userId).getDocument()
+        guard let data = snapshot.data(),
+              let profileData = data["tasteProfile"] else { return nil }
+        let json = try JSONSerialization.data(withJSONObject: profileData)
+        return try JSONDecoder().decode(TasteProfile.self, from: json)
     }
 }

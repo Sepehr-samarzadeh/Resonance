@@ -158,6 +158,28 @@ actor UserService: UserServiceProtocol {
         }
     }
 
+    // MARK: - Taste Profile
+
+    /// Saves or updates the user's taste profile (genres, artists, library data).
+    func saveTasteProfile(userId: String, profile: TasteProfile) async throws {
+        let dict = try encodeToDict(profile)
+        try await db.collection(usersCollection).document(userId).updateData([
+            "tasteProfile": dict,
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    /// Fetches just the taste profile for a user without loading the full document.
+    func fetchTasteProfile(userId: String) async throws -> TasteProfile? {
+        guard !userId.isEmpty else { return nil }
+        let snapshot = try await db.collection(usersCollection).document(userId).getDocument()
+        guard let data = snapshot.data(),
+              let profileData = data["tasteProfile"] else { return nil }
+        // Re-encode to JSON and decode to TasteProfile
+        let json = try JSONSerialization.data(withJSONObject: profileData)
+        return try JSONDecoder().decode(TasteProfile.self, from: json)
+    }
+
     // MARK: - Device Token
 
     /// Stores the APNs device token for push notifications.

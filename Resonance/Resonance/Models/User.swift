@@ -19,6 +19,7 @@ struct ResonanceUser: Identifiable, Sendable, Hashable {
     var favoriteGenres: [String]
     var topArtists: [TopArtist]
     var currentlyListening: CurrentlyListening?
+    var tasteProfile: TasteProfile?
     var deviceToken: String?
     var createdAt: Date
     var updatedAt: Date
@@ -38,8 +39,8 @@ extension ResonanceUser: Codable {
     enum CodingKeys: String, CodingKey {
         case id, displayName, email, photoURL, bio, pronouns, mood
         case favoriteSong, socialLinks, authProvider
-        case favoriteGenres, topArtists, currentlyListening, deviceToken
-        case createdAt, updatedAt
+        case favoriteGenres, topArtists, currentlyListening, tasteProfile
+        case deviceToken, createdAt, updatedAt
     }
 
     nonisolated init(from decoder: any Decoder) throws {
@@ -57,6 +58,7 @@ extension ResonanceUser: Codable {
         favoriteGenres = try container.decodeIfPresent([String].self, forKey: .favoriteGenres) ?? []
         topArtists = try container.decodeIfPresent([TopArtist].self, forKey: .topArtists) ?? []
         currentlyListening = try container.decodeIfPresent(CurrentlyListening.self, forKey: .currentlyListening)
+        tasteProfile = try container.decodeIfPresent(TasteProfile.self, forKey: .tasteProfile)
         deviceToken = try container.decodeIfPresent(String.self, forKey: .deviceToken)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
@@ -77,6 +79,7 @@ extension ResonanceUser: Codable {
         try container.encode(favoriteGenres, forKey: .favoriteGenres)
         try container.encode(topArtists, forKey: .topArtists)
         try container.encodeIfPresent(currentlyListening, forKey: .currentlyListening)
+        try container.encodeIfPresent(tasteProfile, forKey: .tasteProfile)
         try container.encodeIfPresent(deviceToken, forKey: .deviceToken)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
