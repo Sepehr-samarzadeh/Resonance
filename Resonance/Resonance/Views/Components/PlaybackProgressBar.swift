@@ -42,14 +42,14 @@ struct PlaybackProgressBar: View {
                 HStack {
                     Text(formatTime(isDragging ? dragValue * duration : playbackTime))
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.7))
                         .monospacedDigit()
 
                     Spacer()
 
                     Text("-\(formatTime(duration - (isDragging ? dragValue * duration : playbackTime)))")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.7))
                         .monospacedDigit()
                 }
             }
