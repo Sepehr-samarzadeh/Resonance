@@ -37,7 +37,7 @@ struct OnboardingView: View {
         }
         .background(
             LinearGradient(
-                colors: [.purple.opacity(0.2), .black],
+                colors: [.musicRed.opacity(0.2), .black],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -53,7 +53,7 @@ struct OnboardingView: View {
 
             Image(systemName: "music.note.list")
                 .font(.system(size: largeIconSize))
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
                 .accessibilityHidden(true)
 
             Text(String(localized: "Welcome to Resonance"))
@@ -112,7 +112,7 @@ struct OnboardingView: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(.purple)
+                        .background(.musicRed)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal, 40)
@@ -133,7 +133,7 @@ struct OnboardingView: View {
 
             Image(systemName: "waveform.circle.fill")
                 .font(.system(size: largeIconSize))
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
                 .symbolEffect(.bounce, isActive: !reduceMotion)
                 .accessibilityHidden(true)
 
@@ -158,7 +158,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(.purple)
+                    .background(.musicRed)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding(.horizontal, 40)
@@ -180,7 +180,7 @@ struct OnboardingView: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(.purple.opacity(0.8))
+                .background(.musicRed.opacity(0.8))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 40)

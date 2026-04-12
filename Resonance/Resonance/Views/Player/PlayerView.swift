@@ -45,7 +45,7 @@ struct PlayerView: View {
         .padding()
         .background(
             LinearGradient(
-                colors: [.purple.opacity(0.3), .black],
+                colors: [.musicRed.opacity(0.3), .black],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -83,7 +83,7 @@ struct PlayerView: View {
         if let song = viewModel.currentSong, let artwork = song.artwork {
             ArtworkImage(artwork, width: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: .purple.opacity(0.3), radius: 20, y: 10)
+                .shadow(color: .musicRed.opacity(0.3), radius: 20, y: 10)
                 .transition(.scale.combined(with: .opacity))
                 .id(song.id)
         } else {
@@ -113,7 +113,7 @@ struct PlayerView: View {
 
             Text(viewModel.currentSong?.artistName ?? "")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
                 .lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.easeInOut(duration: 0.3), value: viewModel.currentSong?.id)

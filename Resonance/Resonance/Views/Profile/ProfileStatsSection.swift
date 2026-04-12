@@ -51,7 +51,7 @@ struct ProfileStatsSection: View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
                 .accessibilityHidden(true)
 
             Text(value)

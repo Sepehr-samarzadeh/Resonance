@@ -76,9 +76,11 @@ private struct ChartContentView: View {
                     )
                 } else {
                     ForEach(viewModel.songCharts) { songChart in
-                        ForEach(songChart.items) { song in
+                        let chartSongs = Array(songChart.items)
+                        ForEach(chartSongs) { song in
                             ChartSongRow(
                                 song: song,
+                                allSongs: chartSongs,
                                 playerViewModel: playerViewModel
                             )
                         }
@@ -95,11 +97,16 @@ private struct ChartContentView: View {
 /// A tappable row in the charts list that plays the song on tap.
 struct ChartSongRow: View {
     let song: Song
+    let allSongs: [Song]
     let playerViewModel: PlayerViewModel
+
+    private var isNowPlaying: Bool {
+        playerViewModel.currentSong?.id == song.id
+    }
 
     var body: some View {
         Button {
-            Task { await playerViewModel.play(song: song) }
+            Task { await playerViewModel.play(song: song, in: allSongs) }
         } label: {
             HStack(spacing: 12) {
                 if let artwork = song.artwork {
@@ -111,7 +118,7 @@ struct ChartSongRow: View {
                     Text(song.title)
                         .font(.body)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(isNowPlaying ? AnyShapeStyle(.musicRed) : AnyShapeStyle(.primary))
                         .lineLimit(1)
 
                     Text(song.artistName)
@@ -122,16 +129,24 @@ struct ChartSongRow: View {
 
                 Spacer()
 
-                Image(systemName: "play.circle")
-                    .font(.title3)
-                    .foregroundStyle(.purple)
-                    .accessibilityHidden(true)
+                if isNowPlaying && playerViewModel.isPlaying {
+                    Image(systemName: "waveform")
+                        .font(.title3)
+                        .foregroundStyle(.musicRed)
+                        .symbolEffect(.variableColor.iterative, isActive: true)
+                        .accessibilityLabel(String(localized: "Now Playing"))
+                } else {
+                    Image(systemName: "play.circle")
+                        .font(.title3)
+                        .foregroundStyle(.musicRed)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "Play \(song.title) by \(song.artistName)"))
+        .accessibilityLabel(String(localized: isNowPlaying ? "Now playing: \(song.title) by \(song.artistName)" : "Play \(song.title) by \(song.artistName)"))
         .sensoryFeedback(.impact(flexibility: .soft), trigger: playerViewModel.currentSong?.id)
     }
 }

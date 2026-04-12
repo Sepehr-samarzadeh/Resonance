@@ -58,7 +58,7 @@ private struct InlineArtworkView: View {
         if let artwork = song.artwork {
             ArtworkImage(artwork, width: Constants.UI.artworkLargeSize)
                 .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cornerRadiusLarge))
-                .shadow(color: .purple.opacity(0.3), radius: 16, y: 8)
+                .shadow(color: .musicRed.opacity(0.3), radius: 16, y: 8)
                 .transition(.scale.combined(with: .opacity))
         } else {
             RoundedRectangle(cornerRadius: Constants.UI.cornerRadiusLarge)

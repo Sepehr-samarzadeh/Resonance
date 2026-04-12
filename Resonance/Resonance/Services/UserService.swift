@@ -241,4 +241,52 @@ actor UserService: UserServiceProtocol {
     func deleteUser(userId: String) async throws {
         try await db.collection(usersCollection).document(userId).delete()
     }
+
+    // MARK: - Imported Playlists
+
+    /// Saves an imported playlist to the user's `importedPlaylists` subcollection.
+    func saveImportedPlaylist(userId: String, playlist: ImportedPlaylist) async throws {
+        guard !userId.isEmpty else {
+            logger.error("saveImportedPlaylist called with empty userId")
+            return
+        }
+        let dict = try encodeToDict(playlist)
+        try await db.collection(usersCollection)
+            .document(userId)
+            .collection("importedPlaylists")
+            .document(playlist.id)
+            .setData(dict)
+    }
+
+    /// Fetches all imported playlists for a user, ordered by import date.
+    func fetchImportedPlaylists(userId: String) async throws -> [ImportedPlaylist] {
+        guard !userId.isEmpty else {
+            logger.error("fetchImportedPlaylists called with empty userId")
+            return []
+        }
+        let snapshot = try await db.collection(usersCollection)
+            .document(userId)
+            .collection("importedPlaylists")
+            .order(by: "importedAt", descending: true)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { doc in
+            var dict = doc.data()
+            dict["id"] = doc.documentID
+            return decodeFromDictOptional(ImportedPlaylist.self, from: dict)
+        }
+    }
+
+    /// Deletes an imported playlist from the user's subcollection.
+    func deleteImportedPlaylist(userId: String, playlistId: String) async throws {
+        guard !userId.isEmpty else {
+            logger.error("deleteImportedPlaylist called with empty userId")
+            return
+        }
+        try await db.collection(usersCollection)
+            .document(userId)
+            .collection("importedPlaylists")
+            .document(playlistId)
+            .delete()
+    }
 }

@@ -26,7 +26,7 @@ struct ProfileFavoriteSongSection: View {
                     .frame(width: 44, height: 44)
                     .background(
                         LinearGradient(
-                            colors: [.purple, .indigo],
+                            colors: [.musicRed, .indigo],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )

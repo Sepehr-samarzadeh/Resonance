@@ -46,6 +46,26 @@ final class PlayerViewModel {
             isPlaying = true
             songDuration = song.duration
             playbackTime = 0
+            queue = [song]
+            startPlaybackTimerIfNeeded()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Plays a song from a list, populating the full queue so skip works.
+    /// - Parameters:
+    ///   - song: The song to start playing.
+    ///   - songs: The full list of songs to enqueue.
+    func play(song: Song, in songs: [Song]) async {
+        let index = songs.firstIndex(where: { $0.id == song.id }) ?? 0
+        do {
+            try await musicService.play(songs: songs, startingAt: index)
+            currentSong = song
+            isPlaying = true
+            songDuration = song.duration
+            playbackTime = 0
+            queue = songs
             startPlaybackTimerIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
@@ -87,6 +107,11 @@ final class PlayerViewModel {
     }
 
     /// Skips to the next song on the active player.
+    ///
+    /// After the skip completes, waits briefly for MusicKit's queue entry to
+    /// update, then forces a manual sync. The `nowPlayingChanges()` observer
+    /// often fires *before* the queue entry reflects the new song, so relying
+    /// on it alone can leave stale artwork/metadata on screen.
     func skipToNext() async {
         do {
             if musicService.isSystemPlayerActive {
@@ -94,12 +119,15 @@ final class PlayerViewModel {
             } else {
                 try await musicService.skipToNext()
             }
+            await waitAndSync()
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     /// Skips to the previous song on the active player.
+    ///
+    /// Applies the same post-skip sync strategy as `skipToNext()`.
     func skipToPrevious() async {
         do {
             if musicService.isSystemPlayerActive {
@@ -107,9 +135,25 @@ final class PlayerViewModel {
             } else {
                 try await musicService.skipToPrevious()
             }
+            await waitAndSync()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Waits for MusicKit's queue entry to settle after a skip, then forces
+    /// a `syncNowPlaying()` call. Retries up to 3 times if the song hasn't
+    /// changed, to handle slow queue updates.
+    private func waitAndSync() async {
+        let previousSongId = currentSong?.id
+        for attempt in 1...3 {
+            try? await Task.sleep(for: .milliseconds(150 * attempt))
+            syncNowPlaying()
+            if currentSong?.id != previousSongId {
+                break
+            }
+        }
+        startPlaybackTimerIfNeeded()
     }
 
     /// Seeks to a specific time in the current song.

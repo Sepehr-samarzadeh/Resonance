@@ -14,6 +14,7 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var hasAppeared = false
     let currentUserId: String
+    let playerViewModel: PlayerViewModel
     var onSignOut: () -> Void
 
     // MARK: - Body
@@ -24,6 +25,7 @@ struct ProfileView: View {
                 ProfileContentView(
                     viewModel: viewModel,
                     currentUserId: currentUserId,
+                    playerViewModel: playerViewModel,
                     onSignOut: onSignOut
                 )
             } else {
@@ -92,9 +94,11 @@ struct ProfileContentView: View {
 
     let viewModel: ProfileViewModel
     let currentUserId: String
+    let playerViewModel: PlayerViewModel
     var onSignOut: () -> Void
 
     @State private var sectionAppeared = false
+    @State private var showPlaylistImport = false
 
     // MARK: - Body
 
@@ -128,6 +132,13 @@ struct ProfileContentView: View {
                     if let song = viewModel.user?.favoriteSong {
                         ProfileFavoriteSongSection(song: song)
                     }
+
+                    // Imported playlists
+                    ProfilePlaylistsSection(
+                        playlists: viewModel.importedPlaylists,
+                        playerViewModel: playerViewModel,
+                        onImportTapped: { showPlaylistImport = true }
+                    )
 
                     // Top artists
                     ProfileTopArtistsSection(
@@ -166,6 +177,28 @@ struct ProfileContentView: View {
                 .offset(y: sectionAppeared ? 0 : 20)
             }
             .padding(.bottom, 32)
+        }
+        .sheet(isPresented: $showPlaylistImport) {
+            // Reload playlists from Firestore when the sheet is dismissed
+            // to ensure the profile reflects any imports that were saved.
+            Task {
+                await viewModel.loadImportedPlaylists(userId: currentUserId)
+            }
+        } content: {
+            NavigationStack {
+                PlaylistImportView(
+                    currentUserId: currentUserId,
+                    alreadyImportedIds: Set(viewModel.importedPlaylists.map(\.id)),
+                    onImport: { playlist in
+                        Task {
+                            await viewModel.saveImportedPlaylist(
+                                userId: currentUserId,
+                                playlist: playlist
+                            )
+                        }
+                    }
+                )
+            }
         }
         .task {
             withAnimation(.easeOut(duration: 0.5).delay(0.2)) {

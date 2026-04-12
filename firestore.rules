@@ -1,119 +1,36 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ──────────────────────────────────────────────
-    // Helper functions
-    // ──────────────────────────────────────────────
-
-    /// Returns true if the request is from an authenticated user.
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    /// Returns true if the authenticated user's UID matches the given userId.
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    /// Returns true if the authenticated user is one of the two users in a match.
-    function isMatchParticipant() {
-      return isAuthenticated() && request.auth.uid in resource.data.userIds;
-    }
-
-    /// Returns true if the authenticated user is a participant of the match
-    /// being created (for new documents where resource.data doesn't exist yet).
-    function isMatchParticipantOnCreate() {
-      return isAuthenticated() && request.auth.uid in request.resource.data.userIds;
-    }
-
-    // ──────────────────────────────────────────────
-    // users/{userId}
-    // ──────────────────────────────────────────────
-
+    // Users: authenticated users can read any profile,
+    // but only write their own document.
     match /users/{userId} {
-      // Any authenticated user can read any user profile (needed for match cards, chat headers).
-      allow read: if isAuthenticated();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Users can only create their own document.
-      allow create: if isOwner(userId);
-
-      // Users can only update their own document.
-      // Prevent changing the id or authProvider fields after creation.
-      allow update: if isOwner(userId)
-        && request.resource.data.id == resource.data.id
-        && request.resource.data.authProvider == resource.data.authProvider;
-
-      // Users can only delete their own document.
-      allow delete: if isOwner(userId);
-    }
-
-    // ──────────────────────────────────────────────
-    // matches/{matchId}
-    // ──────────────────────────────────────────────
-
-    match /matches/{matchId} {
-      // Only participants of the match can read it.
-      allow read: if isMatchParticipant();
-
-      // Any authenticated user can create a match, but they must be one of the participants.
-      // The match must have exactly 2 userIds.
-      allow create: if isMatchParticipantOnCreate()
-        && request.resource.data.userIds.size() == 2;
-
-      // Matches are immutable once created — no updates or deletes from clients.
-      allow update, delete: if false;
-
-      // ──────────────────────────────────────────
-      // matches/{matchId}/messages/{messageId}
-      // ──────────────────────────────────────────
-
-      match /messages/{messageId} {
-        // Only match participants can read messages.
-        allow read: if isAuthenticated()
-          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds;
-
-        // Only match participants can send messages.
-        // The senderId must be the authenticated user.
-        allow create: if isAuthenticated()
-          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds
-          && request.resource.data.senderId == request.auth.uid;
-
-        // Only allow updating the isRead field (for read receipts).
-        // Only the non-sender (recipient) can mark a message as read.
-        allow update: if isAuthenticated()
-          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds
-          && resource.data.senderId != request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
-
-        // Messages cannot be deleted by clients.
-        allow delete: if false;
+      // Imported playlists subcollection: same rules as the parent user document.
+      match /importedPlaylists/{playlistId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
     }
-
-    // ──────────────────────────────────────────────
-    // listeningHistory/{userId}/sessions/{sessionId}
-    // ──────────────────────────────────────────────
-
+    // Listening history: users can read/write their own sessions.
     match /listeningHistory/{userId}/sessions/{sessionId} {
-      // Users can read their own listening history.
-      // Other authenticated users can also read (needed for historical matching).
-      allow read: if isAuthenticated();
-
-      // Users can only write to their own listening history.
-      allow create: if isOwner(userId);
-
-      // Listening sessions are immutable once created.
-      allow update, delete: if false;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // ──────────────────────────────────────────────
-    // Default: deny everything else
-    // ──────────────────────────────────────────────
-
-    match /{document=**} {
-      allow read, write: if false;
+    // Matches: authenticated users can read matches they're part of,
+    // and create new matches.
+    match /matches/{matchId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.userIds;
+      allow create: if request.auth != null
+        && request.auth.uid in request.resource.data.userIds;
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.userIds;
+      // Messages subcollection: participants can read/write messages.
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds;
+      }
     }
   }
 }

@@ -20,7 +20,7 @@ struct ProfileHeaderView: View {
             ZStack(alignment: .bottom) {
                 // Gradient backdrop
                 LinearGradient(
-                    colors: [.purple.opacity(0.6), .purple.opacity(0.2), .clear],
+                    colors: [.musicRed.opacity(0.6), .musicRed.opacity(0.2), .clear],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -56,8 +56,8 @@ struct ProfileHeaderView: View {
                     .fontWeight(.medium)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(.purple.opacity(0.15))
-                    .foregroundStyle(.purple)
+                    .background(.musicRed.opacity(0.15))
+                    .foregroundStyle(.musicRed)
                     .clipShape(Capsule())
                     .padding(.top, 8)
             }
@@ -84,7 +84,7 @@ struct ProfileHeaderView: View {
                     .frame(width: 140, height: 140)
                     .overlay {
                         ProgressView()
-                            .tint(.purple)
+                            .tint(.musicRed)
                     }
             }
         }
@@ -118,12 +118,12 @@ struct ProfileHeaderView: View {
 
     private var placeholderPhoto: some View {
         Circle()
-            .fill(.purple.opacity(0.2))
+            .fill(.musicRed.opacity(0.2))
             .frame(width: 140, height: 140)
             .overlay {
                 Image(systemName: "person.fill")
                     .font(.system(size: 50))
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
                     .accessibilityHidden(true)
             }
     }

@@ -132,7 +132,7 @@ struct ChatView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
             }
             .accessibilityLabel(String(localized: "Send message"))
             .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

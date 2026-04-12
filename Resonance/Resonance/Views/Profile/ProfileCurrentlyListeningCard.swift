@@ -37,7 +37,7 @@ struct ProfileCurrentlyListeningCard: View {
                     .frame(width: 48, height: 48)
                     .background(
                         LinearGradient(
-                            colors: [.purple, .pink],
+                            colors: [.musicRed, .pink],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -54,7 +54,7 @@ struct ProfileCurrentlyListeningCard: View {
                     Text(String(localized: "Now Playing"))
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(.musicRed)
                         .textCase(.uppercase)
                 }
 
@@ -80,7 +80,7 @@ struct ProfileCurrentlyListeningCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.purple.opacity(0.3), lineWidth: 1)
+                .strokeBorder(.musicRed.opacity(0.3), lineWidth: 1)
         }
     }
 }
@@ -104,7 +104,7 @@ struct AudioWaveformView: View {
         HStack(spacing: 1.5) {
             ForEach(0..<barCount, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(.purple)
+                    .fill(.musicRed)
                     .frame(width: barWidth)
                     .scaleEffect(
                         y: isAnimating ? CGFloat.random(in: 0.3...1.0) : 0.4,

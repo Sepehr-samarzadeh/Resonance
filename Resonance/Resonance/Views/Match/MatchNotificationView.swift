@@ -22,7 +22,7 @@ struct MatchNotificationView: View {
         VStack(spacing: 20) {
             Image(systemName: "waveform.circle.fill")
                 .font(.system(size: iconSize))
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
                 .symbolEffect(.bounce, isActive: !reduceMotion)
                 .accessibilityHidden(true)
 
@@ -38,7 +38,7 @@ struct MatchNotificationView: View {
             if let song = match.triggerSong {
                 Label(String(localized: "\(song.name) by \(song.artistName)"), systemImage: "music.note")
                     .font(.subheadline)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
             }
 
             HStack(spacing: 16) {
@@ -51,7 +51,7 @@ struct MatchNotificationView: View {
                     onViewMatch()
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.purple)
+                .tint(.musicRed)
             }
             .padding(.top, 8)
         }

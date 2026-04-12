@@ -88,6 +88,19 @@ final class MusicService: MusicServiceProtocol {
         try await player.play()
     }
 
+    /// Plays a list of songs starting at a specific index using the application music player.
+    /// This populates the full queue so skip next/previous work correctly.
+    /// - Parameters:
+    ///   - songs: The full list of songs to enqueue.
+    ///   - index: The index of the song to start playing.
+    func play(songs: [Song], startingAt index: Int) async throws {
+        guard !songs.isEmpty else { return }
+        let clampedIndex = min(max(index, 0), songs.count - 1)
+        let player = ApplicationMusicPlayer.shared
+        player.queue = ApplicationMusicPlayer.Queue(for: songs, startingAt: songs[clampedIndex])
+        try await player.play()
+    }
+
     /// Pauses the application music player.
     func pause() {
         ApplicationMusicPlayer.shared.pause()
@@ -287,5 +300,73 @@ final class MusicService: MusicServiceProtocol {
         // Apple removed the social profile API (v1/me/social-profile returns 404).
         // No public MusicKit API exposes the user's profile photo.
         return nil
+    }
+
+    // MARK: - User Library Playlists
+
+    /// Fetches the user's library playlists from Apple Music.
+    /// - Returns: An array of `Playlist` from the user's library.
+    func fetchUserPlaylists() async throws -> [Playlist] {
+        let request = MusicLibraryRequest<Playlist>()
+        let response = try await request.response()
+        return Array(response.items)
+    }
+
+    /// Fetches the tracks (songs) inside a playlist by its ID.
+    ///
+    /// Library playlists (IDs starting with `p.`) are fetched from the user's
+    /// library. Catalog playlists (IDs starting with `pl.`) are fetched from
+    /// the Apple Music catalog. Falls back to catalog if the prefix is unknown.
+    /// - Parameter playlistId: The `MusicItemID` of the playlist.
+    /// - Returns: An array of `Song` contained in the playlist.
+    func fetchPlaylistTracks(playlistId: String) async throws -> [Song] {
+        if playlistId.hasPrefix("p.") {
+            return try await fetchLibraryPlaylistTracks(playlistId: playlistId)
+        } else {
+            return try await fetchCatalogPlaylistTracks(playlistId: playlistId)
+        }
+    }
+
+    /// Fetches tracks from a catalog playlist.
+    private func fetchCatalogPlaylistTracks(playlistId: String) async throws -> [Song] {
+        let request = MusicCatalogResourceRequest<Playlist>(matching: \.id, equalTo: MusicItemID(playlistId))
+        let response = try await request.response()
+
+        guard var playlist = response.items.first else { return [] }
+
+        playlist = try await playlist.with([.tracks])
+
+        guard let tracks = playlist.tracks else { return [] }
+
+        return tracks.compactMap { track -> Song? in
+            if case .song(let song) = track {
+                return song
+            }
+            return nil
+        }
+    }
+
+    /// Fetches tracks from a library playlist (user's own playlists).
+    /// Library playlists can't be looked up by ID via `MusicCatalogResourceRequest`,
+    /// so we fetch all library playlists and find the matching one.
+    private func fetchLibraryPlaylistTracks(playlistId: String) async throws -> [Song] {
+        let id = MusicItemID(playlistId)
+        let request = MusicLibraryRequest<Playlist>()
+        let response = try await request.response()
+
+        guard var playlist = response.items.first(where: { $0.id == id }) else {
+            return []
+        }
+
+        playlist = try await playlist.with([.tracks])
+
+        guard let tracks = playlist.tracks else { return [] }
+
+        return tracks.compactMap { track -> Song? in
+            if case .song(let song) = track {
+                return song
+            }
+            return nil
+        }
     }
 }

@@ -31,7 +31,7 @@ struct LoginView: View {
         .padding(.horizontal, 32)
         .background(
             LinearGradient(
-                colors: [.purple.opacity(0.3), .blue.opacity(0.2), .black],
+                colors: [.musicRed.opacity(0.3), .blue.opacity(0.2), .black],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -61,7 +61,7 @@ struct LoginView: View {
         VStack(spacing: 16) {
             Image(systemName: "waveform.circle.fill")
                 .font(.system(size: appIconSize))
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
                 .symbolEffect(.pulse, isActive: true)
                 .accessibilityHidden(true)
 

@@ -14,7 +14,7 @@ struct ProfileGenresSection: View {
     // MARK: - Private
 
     private let genreColors: [Color] = [
-        .purple, .pink, .indigo, .blue, .teal, .mint, .orange
+        .musicRed, .pink, .indigo, .blue, .teal, .mint, .orange
     ]
 
     // MARK: - Body

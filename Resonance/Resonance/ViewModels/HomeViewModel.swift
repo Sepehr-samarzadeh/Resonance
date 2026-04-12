@@ -14,6 +14,8 @@ final class HomeViewModel {
     // MARK: - Properties
 
     var recentlyPlayed: [Song] = []
+    var chartPreview: [Song] = []
+    var featuredArtists: [FeaturedArtist] = []
     var isLoading = false
     var errorMessage: String?
     var musicAuthStatus: MusicAuthorization.Status = .notDetermined
@@ -31,8 +33,8 @@ final class HomeViewModel {
 
     // MARK: - Load Data
 
-    /// Loads the home screen data including recently played songs.
-    /// Requests MusicKit authorization if not yet determined.
+    /// Loads the home screen data including recently played songs,
+    /// chart preview, and featured artists.
     func loadData() async {
         isLoading = true
         errorMessage = nil
@@ -48,12 +50,43 @@ final class HomeViewModel {
         }
 
         do {
-            recentlyPlayed = try await musicService.fetchRecentlyPlayed()
+            async let recentTask = musicService.fetchRecentlyPlayed()
+            async let chartsTask = musicService.fetchTopSongs()
+
+            let (recent, charts) = try await (recentTask, chartsTask)
+
+            recentlyPlayed = recent
+            chartPreview = Array(charts.first?.items.prefix(4) ?? [])
+            featuredArtists = extractFeaturedArtists(from: recent)
         } catch {
             errorMessage = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    // MARK: - Extract Featured Artists
+
+    /// Extracts unique artists from recently played songs.
+    private func extractFeaturedArtists(from songs: [Song]) -> [FeaturedArtist] {
+        var seen = Set<String>()
+        var artists: [FeaturedArtist] = []
+
+        for song in songs {
+            let name = song.artistName
+            guard !seen.contains(name) else { continue }
+            seen.insert(name)
+
+            artists.append(FeaturedArtist(
+                id: name,
+                name: name,
+                artwork: song.artwork
+            ))
+
+            if artists.count >= 10 { break }
+        }
+
+        return artists
     }
 
     // MARK: - Update Currently Listening

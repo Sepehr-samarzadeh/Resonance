@@ -38,7 +38,7 @@ struct SearchView: View {
 
 // MARK: - SearchContentView
 
-/// Main search content with search bar and results.
+/// Main search content with search bar, suggestions, and results.
 private struct SearchContentView: View {
 
     @Bindable var viewModel: SearchViewModel
@@ -55,19 +55,12 @@ private struct SearchContentView: View {
                 .listRowSeparator(.hidden)
             }
 
-            if !viewModel.artistResults.isEmpty {
-                Section(String(localized: "Artists")) {
-                    ForEach(viewModel.artistResults) { artist in
-                        SearchArtistRow(artist: artist)
-                    }
-                }
-            }
-
             if !viewModel.songResults.isEmpty {
                 Section(String(localized: "Songs")) {
                     ForEach(viewModel.songResults) { song in
                         SearchSongRow(
                             song: song,
+                            allSongs: viewModel.songResults,
                             playerViewModel: playerViewModel
                         )
                     }
@@ -76,7 +69,6 @@ private struct SearchContentView: View {
 
             if !viewModel.isSearching
                 && viewModel.songResults.isEmpty
-                && viewModel.artistResults.isEmpty
                 && !viewModel.query.isEmpty {
                 ContentUnavailableView.search(text: viewModel.query)
             }
@@ -84,19 +76,28 @@ private struct SearchContentView: View {
         .listStyle(.plain)
         .searchable(
             text: $viewModel.query,
-            prompt: String(localized: "Songs, Artists")
+            prompt: String(localized: "Search songs")
         )
+        .searchSuggestions {
+            if !viewModel.suggestions.isEmpty {
+                ForEach(viewModel.suggestions) { song in
+                    SearchSuggestionRow(song: song)
+                        .searchCompletion(song.title)
+                }
+            }
+        }
+        .onSubmit(of: .search) {
+            viewModel.submitSearch()
+        }
         .onChange(of: viewModel.query) {
             viewModel.search()
         }
         .overlay {
-            if viewModel.query.isEmpty
-                && viewModel.songResults.isEmpty
-                && viewModel.artistResults.isEmpty {
+            if viewModel.query.isEmpty && viewModel.songResults.isEmpty {
                 ContentUnavailableView(
                     String(localized: "Search Apple Music"),
                     systemImage: "magnifyingglass",
-                    description: Text(String(localized: "Find songs and artists to play."))
+                    description: Text(String(localized: "Find songs to play."))
                 )
             }
         }
@@ -116,16 +117,59 @@ private struct SearchContentView: View {
     }
 }
 
+// MARK: - SearchSuggestionRow
+
+/// A suggestion row shown while the user is typing.
+private struct SearchSuggestionRow: View {
+    let song: Song
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let artwork = song.artwork {
+                ArtworkImage(artwork, width: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(.musicRed.opacity(0.2))
+                    .frame(width: 32, height: 32)
+                    .overlay {
+                        Image(systemName: "music.note")
+                            .font(.caption2)
+                            .foregroundStyle(.musicRed)
+                    }
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(song.title)
+                    .font(.subheadline)
+                    .lineLimit(1)
+
+                Text(song.artistName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(localized: "\(song.title) by \(song.artistName)"))
+    }
+}
+
 // MARK: - SearchSongRow
 
 /// A tappable song row in search results that plays the song.
 struct SearchSongRow: View {
     let song: Song
+    let allSongs: [Song]
     let playerViewModel: PlayerViewModel
+
+    private var isNowPlaying: Bool {
+        playerViewModel.currentSong?.id == song.id
+    }
 
     var body: some View {
         Button {
-            Task { await playerViewModel.play(song: song) }
+            Task { await playerViewModel.play(song: song, in: allSongs) }
         } label: {
             HStack(spacing: 12) {
                 if let artwork = song.artwork {
@@ -136,7 +180,7 @@ struct SearchSongRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(song.title)
                         .font(.body)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(isNowPlaying ? AnyShapeStyle(.musicRed) : AnyShapeStyle(.primary))
                         .lineLimit(1)
 
                     Text(song.artistName)
@@ -147,46 +191,22 @@ struct SearchSongRow: View {
 
                 Spacer()
 
-                Image(systemName: "play.circle")
-                    .font(.title3)
-                    .foregroundStyle(.purple)
-                    .accessibilityHidden(true)
+                if isNowPlaying && playerViewModel.isPlaying {
+                    Image(systemName: "waveform")
+                        .font(.title3)
+                        .foregroundStyle(.musicRed)
+                        .symbolEffect(.variableColor.iterative, isActive: true)
+                        .accessibilityLabel(String(localized: "Now Playing"))
+                } else {
+                    Image(systemName: "play.circle")
+                        .font(.title3)
+                        .foregroundStyle(.musicRed)
+                        .accessibilityHidden(true)
+                }
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "Play \(song.title) by \(song.artistName)"))
+        .accessibilityLabel(String(localized: isNowPlaying ? "Now playing: \(song.title) by \(song.artistName)" : "Play \(song.title) by \(song.artistName)"))
         .sensoryFeedback(.impact(flexibility: .soft), trigger: playerViewModel.currentSong?.id)
-    }
-}
-
-// MARK: - SearchArtistRow
-
-/// Displays an artist in search results.
-struct SearchArtistRow: View {
-    let artist: Artist
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if let artwork = artist.artwork {
-                ArtworkImage(artwork, width: 48)
-                    .clipShape(Circle())
-            } else {
-                Circle()
-                    .fill(.purple.opacity(0.2))
-                    .frame(width: 48, height: 48)
-                    .overlay {
-                        Image(systemName: "music.mic")
-                            .foregroundStyle(.purple)
-                    }
-                    .accessibilityHidden(true)
-            }
-
-            Text(artist.name)
-                .font(.body)
-                .lineLimit(1)
-
-            Spacer()
-        }
-        .accessibilityElement(children: .combine)
     }
 }

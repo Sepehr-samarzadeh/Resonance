@@ -83,7 +83,7 @@ struct ProfileSettingsSection: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.subheadline)
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
                 .frame(width: 32, height: 32)
                 .accessibilityHidden(true)
 

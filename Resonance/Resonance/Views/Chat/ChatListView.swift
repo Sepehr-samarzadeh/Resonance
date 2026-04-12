@@ -150,7 +150,7 @@ struct ChatRowView: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(.purple, in: Capsule())
+                            .background(.musicRed, in: Capsule())
                     }
                 }
             }

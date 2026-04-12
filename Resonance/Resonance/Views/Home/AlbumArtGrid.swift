@@ -54,6 +54,6 @@ struct AlbumArtGrid: View {
     // MARK: - Actions
 
     private func playSong(_ song: Song) {
-        Task { await playerViewModel.play(song: song) }
+        Task { await playerViewModel.play(song: song, in: uniqueSongs) }
     }
 }

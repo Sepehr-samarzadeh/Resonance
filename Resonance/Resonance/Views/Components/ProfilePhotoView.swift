@@ -38,11 +38,11 @@ struct ProfilePhotoView: View {
 
     private var placeholderCircle: some View {
         Circle()
-            .fill(.purple.opacity(0.2))
+            .fill(.musicRed.opacity(0.2))
             .frame(width: size, height: size)
             .overlay {
                 Image(systemName: fallbackIcon)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
                     .font(.system(size: size * 0.35))
             }
             .accessibilityHidden(true)

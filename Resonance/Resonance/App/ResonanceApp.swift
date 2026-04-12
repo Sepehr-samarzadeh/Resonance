@@ -110,7 +110,7 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var showPlayer = false
 
-    /// Navigation paths for programmatic navigation
+    /// Navigation path for programmatic navigation
     @State private var matchesNavPath = NavigationPath()
     @State private var messagesNavPath = NavigationPath()
 
@@ -263,19 +263,13 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Charts"), systemImage: "chart.line.uptrend.xyaxis", value: 1) {
-                NavigationStack {
-                    MusicChartView(playerViewModel: playerViewModel)
-                }
-            }
-
-            Tab(String(localized: "Search"), systemImage: "magnifyingglass", value: 2) {
+            Tab(String(localized: "Search"), systemImage: "magnifyingglass", value: 1) {
                 NavigationStack {
                     SearchView(playerViewModel: playerViewModel)
                 }
             }
 
-            Tab(String(localized: "Matches"), systemImage: "person.2.fill", value: 3) {
+            Tab(String(localized: "Matches"), systemImage: "person.2.fill", value: 2) {
                 NavigationStack(path: $matchesNavPath) {
                     MatchFeedView(viewModel: matchViewModel, currentUserId: currentUserId)
                         .navigationDestination(for: Match.self) { match in
@@ -287,11 +281,11 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Messages"), systemImage: "bubble.left.and.bubble.right.fill", value: 4) {
+            Tab(String(localized: "Messages"), systemImage: "bubble.left.and.bubble.right.fill", value: 3) {
                 NavigationStack(path: $messagesNavPath) {
                     ChatListView(viewModel: matchViewModel, currentUserId: currentUserId)
                         .navigationDestination(for: Match.self) { match in
-                            ChatView(
+                            MatchDetailView(
                                 match: match,
                                 currentUserId: currentUserId
                             )
@@ -299,9 +293,12 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Profile"), systemImage: "person.crop.circle", value: 5) {
+            Tab(String(localized: "Profile"), systemImage: "person.crop.circle", value: 4) {
                 NavigationStack {
-                    ProfileView(currentUserId: currentUserId) {
+                    ProfileView(
+                        currentUserId: currentUserId,
+                        playerViewModel: playerViewModel
+                    ) {
                         authViewModel.signOut()
                     }
                 }
@@ -315,8 +312,8 @@ private struct MainTabContent: View {
     private func handleDeepLink(_ deepLink: DeepLink) {
         switch deepLink {
         case .chat(let matchId):
-            // Switch to Messages tab and fetch the match to push it
-            selectedTab = 4
+            // Switch to Messages tab and navigate to the match detail
+            selectedTab = 3
             messagesNavPath = NavigationPath()
             Task {
                 if let match = try? await services.matchService.fetchMatch(id: matchId) {
@@ -324,7 +321,7 @@ private struct MainTabContent: View {
                 }
             }
         case .matches:
-            selectedTab = 3
+            selectedTab = 2
             matchesNavPath = NavigationPath()
         }
     }
@@ -455,7 +452,7 @@ private struct MatchNotificationOverlay: View {
                     withAnimation(.spring(duration: 0.3)) {
                         pendingMatch = nil
                         matchUserName = nil
-                        selectedTab = 3
+                        selectedTab = 2
                     }
                 }
             )

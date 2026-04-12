@@ -127,7 +127,7 @@ struct MatchDetailView: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
             }
             .accessibilityLabel(String(localized: "Send message"))
             .disabled(chatViewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -150,7 +150,7 @@ struct ChatBubble: View {
                 .font(.body)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(isFromCurrentUser ? .purple : Color(.systemGray5))
+                .background(isFromCurrentUser ? .musicRed : Color(.systemGray5))
                 .foregroundStyle(isFromCurrentUser ? .white : .primary)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
 

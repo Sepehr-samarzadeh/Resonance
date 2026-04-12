@@ -37,7 +37,7 @@ struct PlaybackProgressBar: View {
                         Task { await onSeek(seekTime) }
                     }
                 }
-                .tint(.purple)
+                .tint(.musicRed)
 
                 HStack {
                     Text(formatTime(isDragging ? dragValue * duration : playbackTime))

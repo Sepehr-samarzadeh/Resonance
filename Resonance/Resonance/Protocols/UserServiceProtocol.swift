@@ -54,4 +54,15 @@ protocol UserServiceProtocol: Sendable {
 
     /// Returns an `AsyncStream` that emits user document changes in real time.
     func userChanges(userId: String) -> AsyncStream<ResonanceUser?>
+
+    // MARK: - Imported Playlists
+
+    /// Saves an imported playlist to the user's `importedPlaylists` subcollection.
+    func saveImportedPlaylist(userId: String, playlist: ImportedPlaylist) async throws
+
+    /// Fetches all imported playlists for a user, ordered by import date.
+    func fetchImportedPlaylists(userId: String) async throws -> [ImportedPlaylist]
+
+    /// Deletes an imported playlist from the user's subcollection.
+    func deleteImportedPlaylist(userId: String, playlistId: String) async throws
 }

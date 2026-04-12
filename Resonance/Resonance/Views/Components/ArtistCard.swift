@@ -26,7 +26,7 @@ struct ArtistCard: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(.purple)
+                        .background(.musicRed)
                         .clipShape(Capsule())
                         .offset(x: 4, y: -4)
                 }
@@ -71,7 +71,7 @@ struct ArtistCard: View {
         Circle()
             .fill(
                 LinearGradient(
-                    colors: [.purple.opacity(0.25), .indigo.opacity(0.15)],
+                    colors: [.musicRed.opacity(0.25), .indigo.opacity(0.15)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -80,7 +80,7 @@ struct ArtistCard: View {
             .overlay {
                 Image(systemName: "music.mic")
                     .font(.title2)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
                     .accessibilityHidden(true)
             }
     }

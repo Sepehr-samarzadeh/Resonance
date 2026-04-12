@@ -26,7 +26,7 @@ struct ProfileTopArtistsSection: View {
                     onAutoPopulate()
                 }
                 .font(.caption)
-                .foregroundStyle(.purple)
+                .foregroundStyle(.musicRed)
             }
 
             if artists.isEmpty {

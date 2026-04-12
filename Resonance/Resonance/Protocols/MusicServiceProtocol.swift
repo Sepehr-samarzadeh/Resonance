@@ -34,6 +34,10 @@ protocol MusicServiceProtocol: Sendable {
     /// Plays a song using the application music player.
     func play(song: Song) async throws
 
+    /// Plays a list of songs starting at a specific index using the application music player.
+    /// This populates the queue so skip next/previous work correctly.
+    func play(songs: [Song], startingAt index: Int) async throws
+
     /// Pauses the application music player.
     func pause()
 
@@ -90,4 +94,10 @@ protocol MusicServiceProtocol: Sendable {
     /// Fetches the current user's Apple Music social profile photo URL.
     /// Returns `nil` if the user has no social profile or no profile picture set.
     func fetchProfilePhotoURL(width: Int, height: Int) async throws -> URL?
+
+    /// Fetches the user's library playlists from Apple Music.
+    func fetchUserPlaylists() async throws -> [Playlist]
+
+    /// Fetches the tracks (songs) inside a playlist by its catalog/library ID.
+    func fetchPlaylistTracks(playlistId: String) async throws -> [Song]
 }

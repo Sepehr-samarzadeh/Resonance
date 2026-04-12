@@ -88,8 +88,17 @@ private struct HomeContent: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    AlbumArtGrid(
+                    HomeFeaturedArtistsSection(
+                        artists: viewModel.featuredArtists
+                    )
+
+                    HomeListeningHistoryCard(
                         songs: viewModel.recentlyPlayed,
+                        playerViewModel: playerViewModel
+                    )
+
+                    HomeTopChartsSection(
+                        songs: viewModel.chartPreview,
                         playerViewModel: playerViewModel
                     )
                 }

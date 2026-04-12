@@ -33,7 +33,7 @@ struct ProfileListeningHistorySection: View {
                         }
                     }
                     .font(.caption)
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.musicRed)
                 }
             }
 
@@ -80,7 +80,7 @@ struct ListeningHistoryRow: View {
                 .frame(width: 36, height: 36)
                 .background(
                     LinearGradient(
-                        colors: [.purple.opacity(0.8), .indigo.opacity(0.8)],
+                        colors: [.musicRed.opacity(0.8), .indigo.opacity(0.8)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )

@@ -15,6 +15,7 @@ final class ProfileViewModel {
 
     var user: ResonanceUser?
     var listeningHistory: [ListeningSession] = []
+    var importedPlaylists: [ImportedPlaylist] = []
     var isLoading = false
     var isSaving = false
     var isUploadingPhoto = false
@@ -70,6 +71,9 @@ final class ProfileViewModel {
             }
 
             listeningHistory = try await userService.fetchListeningHistory(userId: userId, limit: 20)
+
+            // Load imported playlists
+            await loadImportedPlaylists(userId: userId)
 
             // Auto-fetch Apple Music profile photo if user has none
             if user?.photoURL == nil {
@@ -222,6 +226,61 @@ final class ProfileViewModel {
         for await updatedUser in userService.userChanges(userId: userId) {
             guard !Task.isCancelled else { return }
             user = updatedUser
+        }
+    }
+
+    // MARK: - Imported Playlists
+
+    /// Loads the user's imported playlists from Firestore.
+    func loadImportedPlaylists(userId: String) async {
+        guard !userId.isEmpty else {
+            Log.user.error("loadImportedPlaylists called with empty userId")
+            return
+        }
+
+        do {
+            importedPlaylists = try await userService.fetchImportedPlaylists(userId: userId)
+        } catch {
+            Log.user.error("Failed to load imported playlists: \(error.localizedDescription)")
+        }
+    }
+
+    /// Saves an imported playlist to Firestore and adds it to the local array.
+    /// Uses an optimistic update: the playlist is added locally first so the
+    /// UI reflects the change immediately, then persisted to Firestore.
+    func saveImportedPlaylist(userId: String, playlist: ImportedPlaylist) async {
+        guard !userId.isEmpty else {
+            Log.user.error("saveImportedPlaylist called with empty userId")
+            return
+        }
+
+        // Optimistic local insert — UI updates immediately
+        if !importedPlaylists.contains(where: { $0.id == playlist.id }) {
+            importedPlaylists.insert(playlist, at: 0)
+        }
+
+        do {
+            try await userService.saveImportedPlaylist(userId: userId, playlist: playlist)
+        } catch {
+            // Roll back on failure
+            importedPlaylists.removeAll { $0.id == playlist.id }
+            Log.user.error("Failed to save imported playlist: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Deletes an imported playlist from Firestore and removes it from the local array.
+    func deleteImportedPlaylist(userId: String, playlistId: String) async {
+        guard !userId.isEmpty else {
+            Log.user.error("deleteImportedPlaylist called with empty userId")
+            return
+        }
+
+        do {
+            try await userService.deleteImportedPlaylist(userId: userId, playlistId: playlistId)
+            importedPlaylists.removeAll { $0.id == playlistId }
+        } catch {
+            Log.user.error("Failed to delete imported playlist: \(error.localizedDescription)")
         }
     }
 }
