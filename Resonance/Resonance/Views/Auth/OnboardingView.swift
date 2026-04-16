@@ -13,6 +13,7 @@ struct OnboardingView: View {
 
     @Environment(\.services) private var services
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openURL) private var openURL
     @State private var currentPage = 0
     @State private var musicAuthStatus: MusicAuthorization.Status = .notDetermined
     @State private var selectedGenres: Set<String> = []
@@ -117,11 +118,54 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
-            if musicAuthStatus == .authorized {
+            switch musicAuthStatus {
+            case .authorized:
                 Label(String(localized: "Access Granted"), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .font(.headline)
-            } else {
+
+            case .denied:
+                VStack(spacing: 12) {
+                    Label(String(localized: "Access Denied"), systemImage: "xmark.circle.fill")
+                        .foregroundStyle(.red)
+                        .font(.headline)
+
+                    Text(String(localized: "You can enable Apple Music access in Settings. Without it, some features like matching and listening history won't work."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+
+                    Button {
+                        if let url = URL(string: "App-prefs:root") {
+                            openURL(url)
+                        }
+                    } label: {
+                        Text(String(localized: "Open Settings"))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(.secondary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.horizontal, 40)
+                }
+
+            case .restricted:
+                VStack(spacing: 12) {
+                    Label(String(localized: "Access Restricted"), systemImage: "lock.circle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.headline)
+
+                    Text(String(localized: "Apple Music access is restricted on this device, possibly by parental controls. Some features won't be available."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+
+            default:
                 Button {
                     Task {
                         musicAuthStatus = await services.musicService.requestAuthorization()
@@ -143,6 +187,9 @@ struct OnboardingView: View {
             nextButton
         }
         .padding()
+        .task {
+            musicAuthStatus = services.musicService.authorizationStatus
+        }
     }
 
     // MARK: - Ready Page

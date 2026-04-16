@@ -259,9 +259,37 @@ actor UserService: UserServiceProtocol {
 
     // MARK: - Delete Account
 
-    /// Deletes the user's Firestore document.
-    func deleteUser(userId: String) async throws {
+    /// Deletes all user data from Firestore: user document, listening history, and imported playlists.
+    func deleteAllUserData(userId: String) async throws {
+        guard !userId.isEmpty else {
+            logger.error("deleteAllUserData called with empty userId")
+            return
+        }
+
+        // Delete listening history subcollection
+        let sessions = try await db.collection("listeningHistory")
+            .document(userId)
+            .collection("sessions")
+            .getDocuments()
+        for doc in sessions.documents {
+            try await doc.reference.delete()
+        }
+        // Delete the listeningHistory parent document
+        try await db.collection("listeningHistory").document(userId).delete()
+
+        // Delete imported playlists subcollection
+        let playlists = try await db.collection(usersCollection)
+            .document(userId)
+            .collection("importedPlaylists")
+            .getDocuments()
+        for doc in playlists.documents {
+            try await doc.reference.delete()
+        }
+
+        // Delete the user document itself
         try await db.collection(usersCollection).document(userId).delete()
+
+        logger.info("Deleted all data for user \(userId)")
     }
 
     // MARK: - Imported Playlists

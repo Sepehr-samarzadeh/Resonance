@@ -89,11 +89,27 @@ struct RootView: View {
             if isSignedIn, let userId = authViewModel.currentUserId,
                let token = appDelegate.latestDeviceToken {
                 Task {
-                    try? await appDelegate.notificationService?.registerDeviceToken(token, forUserId: userId)
+                    do {
+                        try await appDelegate.notificationService?.registerDeviceToken(token, forUserId: userId)
+                    } catch {
+                        Log.notification.error("Failed to register device token: \(error.localizedDescription)")
+                    }
                 }
             }
         }
     }
+}
+
+// MARK: - AppTab
+
+enum AppTab: String, CaseIterable, Identifiable {
+    case home
+    case search
+    case matches
+    case messages
+    case profile
+
+    var id: String { rawValue }
 }
 
 // MARK: - MainTabView
@@ -107,7 +123,7 @@ struct MainTabView: View {
     let appDelegate: AppDelegate
     @State private var playerViewModel: PlayerViewModel?
     @State private var matchViewModel: MatchViewModel?
-    @State private var selectedTab = 0
+    @State private var selectedTab: AppTab = .home
     @State private var showPlayer = false
 
     /// Navigation path for programmatic navigation
@@ -176,10 +192,14 @@ struct MainTabView: View {
             // Get a sample of other users to compare with
             let otherUserIds = try await services.matchService.fetchRecentUserIds(excluding: userId, limit: 20)
             for otherUserId in otherUserIds {
-                _ = try? await services.matchService.createHistoricalMatchIfSimilar(
-                    userId1: userId,
-                    userId2: otherUserId
-                )
+                do {
+                    _ = try await services.matchService.createHistoricalMatchIfSimilar(
+                        userId1: userId,
+                        userId2: otherUserId
+                    )
+                } catch {
+                    Log.match.error("Historical match comparison failed for \(otherUserId): \(error.localizedDescription)")
+                }
             }
         } catch {
             Log.match.error("Historical matching error: \(error.localizedDescription)")
@@ -202,7 +222,7 @@ private struct MainTabContent: View {
     let playerViewModel: PlayerViewModel
     let matchViewModel: MatchViewModel
     let appDelegate: AppDelegate
-    @Binding var selectedTab: Int
+    @Binding var selectedTab: AppTab
     @Binding var showPlayer: Bool
     @Binding var matchesNavPath: NavigationPath
     @Binding var messagesNavPath: NavigationPath
@@ -211,6 +231,7 @@ private struct MainTabContent: View {
     let currentUserId: String
 
     @State private var networkMonitor = NetworkMonitor()
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - Body
 
@@ -257,13 +278,16 @@ private struct MainTabContent: View {
         }
         .animation(.spring(duration: 0.4), value: pendingMatchNotification != nil)
         .animation(.easeInOut(duration: 0.3), value: networkMonitor.isConnected)
+        .onChange(of: scenePhase) { _, newPhase in
+            handleScenePhaseChange(newPhase)
+        }
     }
 
     // MARK: - Tab View
 
     private var tabView: some View {
         TabView(selection: $selectedTab) {
-            Tab(String(localized: "Home"), systemImage: "house.fill", value: 0) {
+            Tab(String(localized: "Home"), systemImage: "house.fill", value: AppTab.home) {
                 NavigationStack {
                     HomeView(
                         authViewModel: authViewModel,
@@ -272,13 +296,13 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Search"), systemImage: "magnifyingglass", value: 1) {
+            Tab(String(localized: "Search"), systemImage: "magnifyingglass", value: AppTab.search, role: .search) {
                 NavigationStack {
                     SearchView(playerViewModel: playerViewModel)
                 }
             }
 
-            Tab(String(localized: "Matches"), systemImage: "person.2.fill", value: 2) {
+            Tab(String(localized: "Matches"), systemImage: "person.2.fill", value: AppTab.matches) {
                 NavigationStack(path: $matchesNavPath) {
                     MatchFeedView(viewModel: matchViewModel, currentUserId: currentUserId)
                         .navigationDestination(for: Match.self) { match in
@@ -290,7 +314,7 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Messages"), systemImage: "bubble.left.and.bubble.right.fill", value: 3) {
+            Tab(String(localized: "Messages"), systemImage: "bubble.left.and.bubble.right.fill", value: AppTab.messages) {
                 NavigationStack(path: $messagesNavPath) {
                     ChatListView(viewModel: matchViewModel, currentUserId: currentUserId)
                         .navigationDestination(for: Match.self) { match in
@@ -302,36 +326,83 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Profile"), systemImage: "person.crop.circle", value: 4) {
+            Tab(String(localized: "Profile"), systemImage: "person.crop.circle", value: AppTab.profile) {
                 NavigationStack {
                     ProfileView(
                         currentUserId: currentUserId,
-                        playerViewModel: playerViewModel
-                    ) {
-                        authViewModel.signOut()
-                    }
+                        playerViewModel: playerViewModel,
+                        onSignOut: {
+                            authViewModel.signOut()
+                        },
+                        onDeleteAccount: {
+                            await authViewModel.deleteAccount()
+                        }
+                    )
                 }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
     }
 
     // MARK: - Deep Link Handling
-
-    /// Navigates to the appropriate screen based on a deep-link.
     private func handleDeepLink(_ deepLink: DeepLink) {
         switch deepLink {
         case .chat(let matchId):
             // Switch to Messages tab and navigate to the match detail
-            selectedTab = 3
+            selectedTab = .messages
             messagesNavPath = NavigationPath()
             Task {
-                if let match = try? await services.matchService.fetchMatch(id: matchId) {
-                    messagesNavPath.append(match)
+                do {
+                    if let match = try await services.matchService.fetchMatch(id: matchId) {
+                        messagesNavPath.append(match)
+                    }
+                } catch {
+                    Log.match.error("Failed to fetch match for deep link \(matchId): \(error.localizedDescription)")
                 }
             }
         case .matches:
-            selectedTab = 2
+            selectedTab = .matches
             matchesNavPath = NavigationPath()
+        }
+    }
+
+    // MARK: - Scene Phase
+
+    /// Clears the user's currently-listening status when the app moves to the background,
+    /// and restores it when the app returns to the foreground.
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+        let userId = currentUserId
+        guard !userId.isEmpty else { return }
+
+        switch phase {
+        case .background:
+            Task {
+                do {
+                    try await services.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                    Log.match.info("Cleared currentlyListening for backgrounded app")
+                } catch {
+                    Log.user.error("Failed to clear currentlyListening on background: \(error.localizedDescription)")
+                }
+            }
+        case .active:
+            // Restore currently listening if music is playing
+            if let song = playerViewModel.currentSong, playerViewModel.isPlaying {
+                Task {
+                    let listening = CurrentlyListening(
+                        songId: song.id.rawValue,
+                        songName: song.title,
+                        artistName: song.artistName,
+                        startedAt: Date()
+                    )
+                    do {
+                        try await services.userService.updateCurrentlyListening(userId: userId, listening: listening)
+                    } catch {
+                        Log.user.error("Failed to restore currentlyListening on active: \(error.localizedDescription)")
+                    }
+                }
+            }
+        default:
+            break
         }
     }
 
@@ -355,7 +426,11 @@ private struct MainTabContent: View {
                     artworkURL: song.artwork?.url(width: 300, height: 300)?.absoluteString,
                     startedAt: Date()
                 )
-                try? await services.userService.updateCurrentlyListening(userId: userId, listening: listening)
+                do {
+                    try await services.userService.updateCurrentlyListening(userId: userId, listening: listening)
+                } catch {
+                    Log.user.error("Failed to update currentlyListening: \(error.localizedDescription)")
+                }
 
                 // Check for realtime matches (song + artist) using the shared MatchViewModel
                 let newMatch = await matchViewModel.checkForRealtimeMatch(
@@ -372,7 +447,11 @@ private struct MainTabContent: View {
                     matchNotificationUserName = otherUser?.displayName ?? String(localized: "Someone")
                 }
             } else {
-                try? await services.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                do {
+                    try await services.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                } catch {
+                    Log.user.error("Failed to clear currentlyListening: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -387,7 +466,11 @@ private struct MainTabContent: View {
 
         if !isPlaying {
             Task {
-                try? await services.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                do {
+                    try await services.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                } catch {
+                    Log.user.error("Failed to clear currentlyListening on pause: \(error.localizedDescription)")
+                }
             }
         } else if let song = playerViewModel.currentSong {
             // Resumed playback — re-broadcast currently listening
@@ -399,7 +482,11 @@ private struct MainTabContent: View {
                 startedAt: Date()
             )
             Task {
-                try? await services.userService.updateCurrentlyListening(userId: userId, listening: listening)
+                do {
+                    try await services.userService.updateCurrentlyListening(userId: userId, listening: listening)
+                } catch {
+                    Log.user.error("Failed to update currentlyListening on resume: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -443,7 +530,7 @@ private struct OfflineBanner: View {
 private struct MatchNotificationOverlay: View {
     @Binding var pendingMatch: Match?
     @Binding var matchUserName: String?
-    @Binding var selectedTab: Int
+    @Binding var selectedTab: AppTab
 
     var body: some View {
         if let match = pendingMatch,
@@ -461,7 +548,7 @@ private struct MatchNotificationOverlay: View {
                     withAnimation(.spring(duration: 0.3)) {
                         pendingMatch = nil
                         matchUserName = nil
-                        selectedTab = 2
+                        selectedTab = .matches
                     }
                 }
             )

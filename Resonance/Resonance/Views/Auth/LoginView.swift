@@ -113,6 +113,18 @@ struct LoginView: View {
                     .background(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+
+                // Legal links
+                HStack(spacing: 4) {
+                    Text(String(localized: "By signing in, you agree to our"))
+                    Link(String(localized: "Terms"), destination: Constants.Legal.termsOfServiceURL)
+                    Text(String(localized: "and"))
+                    Link(String(localized: "Privacy Policy"), destination: Constants.Legal.privacyPolicyURL)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
             }
         }
     }

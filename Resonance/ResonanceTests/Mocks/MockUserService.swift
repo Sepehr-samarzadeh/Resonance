@@ -189,4 +189,14 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
         deleteImportedPlaylistCallCount += 1
         if let error = stubbedDeleteImportedPlaylistError { throw error }
     }
+
+    // MARK: - Account Deletion
+
+    var deleteAllUserDataCallCount = 0
+    var stubbedDeleteAllUserDataError: Error?
+
+    func deleteAllUserData(userId: String) async throws {
+        deleteAllUserDataCallCount += 1
+        if let error = stubbedDeleteAllUserDataError { throw error }
+    }
 }

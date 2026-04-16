@@ -3,6 +3,7 @@
 
 import Foundation
 import MusicKit
+import SwiftUI
 
 // MARK: - SearchViewModel
 
@@ -41,7 +42,9 @@ final class SearchViewModel {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             songResults = []
-            suggestions = []
+            withAnimation(.spring(duration: 0.3)) {
+                suggestions = []
+            }
             isSearching = false
             return
         }
@@ -83,7 +86,9 @@ final class SearchViewModel {
         searchTask = Task {
             do {
                 songResults = try await musicService.searchSongs(query: trimmed, limit: 20)
-                suggestions = []
+                withAnimation(.easeOut(duration: 0.15)) {
+                    suggestions = []
+                }
                 errorMessage = nil
             } catch {
                 guard !Task.isCancelled else { return }
@@ -106,7 +111,9 @@ final class SearchViewModel {
             do {
                 let results = try await musicService.searchSongs(query: query, limit: 5)
                 guard !Task.isCancelled else { return }
-                suggestions = results
+                withAnimation(.spring(duration: 0.35, bounce: 0.2)) {
+                    suggestions = results
+                }
             } catch {
                 // Suggestions are best-effort; don't show errors
                 guard !Task.isCancelled else { return }
@@ -119,7 +126,9 @@ final class SearchViewModel {
     /// Called when the user taps a suggestion to fill the search bar.
     func selectSuggestion(_ song: Song) {
         query = song.title
-        suggestions = []
+        withAnimation(.easeOut(duration: 0.15)) {
+            suggestions = []
+        }
         search()
     }
 }

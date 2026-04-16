@@ -18,23 +18,8 @@ struct OnboardingGenreView: View {
 
     // MARK: - Constants
 
-    private static let allGenres: [String] = [
-        "Pop", "Rock", "Hip-Hop", "R&B", "Jazz", "Classical",
-        "Electronic", "Country", "Latin", "Metal", "Indie",
-        "Alternative", "Soul", "Funk", "Reggae", "Blues",
-        "Folk", "Punk", "K-Pop", "J-Pop", "Afrobeats",
-        "Dance", "Lo-Fi", "Ambient", "Gospel", "Soundtrack"
-    ]
-
-    private static let genreEmojis: [String: String] = [
-        "Pop": "🎤", "Rock": "🎸", "Hip-Hop": "🎙️", "R&B": "🎵",
-        "Jazz": "🎷", "Classical": "🎻", "Electronic": "🎛️", "Country": "🤠",
-        "Latin": "💃", "Metal": "🤘", "Indie": "🎹", "Alternative": "🔊",
-        "Soul": "❤️", "Funk": "🕺", "Reggae": "🌴", "Blues": "🎺",
-        "Folk": "🪕", "Punk": "⚡", "K-Pop": "🇰🇷", "J-Pop": "🇯🇵",
-        "Afrobeats": "🥁", "Dance": "🪩", "Lo-Fi": "☕", "Ambient": "🌊",
-        "Gospel": "🙏", "Soundtrack": "🎬"
-    ]
+    private static let allGenres = Constants.Genres.all
+    private static let genreEmojis = Constants.Genres.emojis
 
     private var canProceed: Bool {
         selectedGenres.count >= 3

@@ -34,6 +34,10 @@ protocol AuthServiceProtocol: Sendable {
     /// Signs out the current user from Firebase and Google.
     func signOut() throws
 
+    /// Deletes the currently authenticated user's Firebase Auth account.
+    /// The user may need to re-authenticate if the session is stale.
+    func deleteAccount() async throws
+
     /// Returns an `AsyncStream` that emits the current Firebase user's UID whenever auth state changes.
     func authStateChanges() -> AsyncStream<String?>
 }

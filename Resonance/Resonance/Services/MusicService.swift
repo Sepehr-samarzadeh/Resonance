@@ -262,6 +262,7 @@ final class MusicService: MusicServiceProtocol {
             artistId: song.artistURL?.absoluteString ?? song.id.rawValue,
             artistName: song.artistName,
             genre: song.genreNames.first,
+            artworkURL: song.artwork?.url(width: 300, height: 300)?.absoluteString,
             listenedAt: Date(),
             durationSeconds: song.duration.map { Int($0) } ?? 0
         )
@@ -392,5 +393,29 @@ final class MusicService: MusicServiceProtocol {
             }
             return nil
         }
+    }
+
+    // MARK: - Fetch Artwork URLs
+
+    /// Fetches artwork URLs for a batch of song catalog IDs using MusicKit.
+    func fetchArtworkURLs(for songIds: [String], width: Int, height: Int) async throws -> [String: String] {
+        guard !songIds.isEmpty else { return [:] }
+
+        var result: [String: String] = [:]
+
+        // MusicCatalogResourceRequest supports filtering by multiple IDs
+        let musicIds = songIds.map { MusicItemID($0) }
+        var request = MusicCatalogResourceRequest<Song>(matching: \.id, memberOf: musicIds)
+        request.limit = songIds.count
+
+        let response = try await request.response()
+
+        for song in response.items {
+            if let url = song.artwork?.url(width: width, height: height) {
+                result[song.id.rawValue] = url.absoluteString
+            }
+        }
+
+        return result
     }
 }

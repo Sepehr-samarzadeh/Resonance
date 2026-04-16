@@ -51,43 +51,56 @@ private struct ChatListContent: View {
     let currentUserId: String
 
     var body: some View {
-        List {
-            if viewModel.isLoading {
-                ForEach(0..<5, id: \.self) { _ in
-                    SkeletonChatRow()
-                        .listRowSeparator(.hidden)
-                }
-            } else if viewModel.matches.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "No Conversations"),
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text(String(localized: "Match with someone to start chatting."))
-                )
-            } else {
-                ForEach(viewModel.matches) { match in
-                    NavigationLink(value: match) {
-                        ChatRowView(match: match, currentUserId: currentUserId)
+        if !viewModel.isLoading && viewModel.matches.isEmpty {
+            ContentUnavailableView(
+                String(localized: "No Conversations"),
+                systemImage: "bubble.left.and.bubble.right",
+                description: Text(String(localized: "Match with someone to start chatting."))
+            )
+        } else {
+            List {
+                if viewModel.isLoading {
+                    ForEach(0..<5, id: \.self) { _ in
+                        SkeletonChatRow()
+                            .listRowSeparator(.hidden)
                     }
-                    .onAppear {
-                        if match.id == viewModel.matches.last?.id {
-                            Task {
-                                await viewModel.loadMoreMatches(userId: currentUserId)
+                } else {
+                    ForEach(viewModel.matches) { match in
+                        NavigationLink(value: match) {
+                            ChatRowView(match: match, currentUserId: currentUserId)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            if let matchId = match.id {
+                                Button(role: .destructive) {
+                                    Task {
+                                        await viewModel.deleteMatch(matchId: matchId)
+                                    }
+                                } label: {
+                                    Label(String(localized: "Delete"), systemImage: "trash")
+                                }
+                            }
+                        }
+                        .onAppear {
+                            if match.id == viewModel.matches.last?.id {
+                                Task {
+                                    await viewModel.loadMoreMatches(userId: currentUserId)
+                                }
                             }
                         }
                     }
-                }
 
-                if viewModel.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
+                    if viewModel.isLoadingMore {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                            Spacer()
+                        }
+                        .listRowSeparator(.hidden)
                     }
-                    .listRowSeparator(.hidden)
                 }
             }
+            .listStyle(.plain)
         }
-        .listStyle(.plain)
     }
 }
 

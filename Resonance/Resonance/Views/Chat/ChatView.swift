@@ -99,9 +99,19 @@ struct ChatView: View {
                     .padding(.top, 60)
                 } else {
                     ForEach(viewModel.messages) { message in
+                        let isOwn = message.senderId == currentUserId
                         ChatBubble(
                             message: message,
-                            isFromCurrentUser: message.senderId == currentUserId
+                            isFromCurrentUser: isOwn,
+                            onDelete: isOwn ? {
+                                guard let messageId = message.id else { return }
+                                Task {
+                                    await viewModel.deleteMessage(
+                                        matchId: match.id ?? "",
+                                        messageId: messageId
+                                    )
+                                }
+                            } : nil
                         )
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }

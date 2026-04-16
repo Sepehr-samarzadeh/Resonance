@@ -146,18 +146,20 @@ struct MatchDetailView: View {
 struct ChatBubble: View {
     let message: Message
     let isFromCurrentUser: Bool
+    var onDelete: (() -> Void)?
 
     var body: some View {
         HStack {
             if isFromCurrentUser { Spacer() }
 
-            Text(message.text)
-                .font(.body)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(isFromCurrentUser ? .musicRed : Color(.systemGray5))
-                .foregroundStyle(isFromCurrentUser ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+            bubbleContent
+                .contextMenu {
+                    if let onDelete {
+                        Button(role: .destructive, action: onDelete) {
+                            Label(String(localized: "Delete"), systemImage: "trash")
+                        }
+                    }
+                }
 
             if !isFromCurrentUser { Spacer() }
         }
@@ -167,5 +169,15 @@ struct ChatBubble: View {
                 ? String(localized: "You: \(message.text)")
                 : String(localized: "Them: \(message.text)")
         )
+    }
+
+    private var bubbleContent: some View {
+        Text(message.text)
+            .font(.body)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(isFromCurrentUser ? .musicRed : Color(.systemGray5))
+            .foregroundStyle(isFromCurrentUser ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }

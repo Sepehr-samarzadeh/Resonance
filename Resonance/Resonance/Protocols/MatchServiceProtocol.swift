@@ -43,6 +43,9 @@ protocol MatchServiceProtocol: Sendable {
     /// Returns an `AsyncStream` that emits match changes for a user in real time.
     func matchChanges(userId: String) -> AsyncStream<[Match]>
 
+    /// Deletes a match and all its messages.
+    func deleteMatch(matchId: String) async throws
+
     /// Fetches user IDs who have been active recently.
     func fetchRecentUserIds(excluding excludingUserId: String, limit: Int) async throws -> [String]
 

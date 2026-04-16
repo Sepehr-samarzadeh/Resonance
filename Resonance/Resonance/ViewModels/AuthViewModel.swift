@@ -125,12 +125,22 @@ final class AuthViewModel {
 
             // Clean up in background: clear listening status and remove device token
             if let userId {
+                let userLogger = Log.user
+                let notifLogger = Log.notification
                 Task {
                     async let clearListening: Void = {
-                        try? await self.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                        do {
+                            try await self.userService.updateCurrentlyListening(userId: userId, listening: nil)
+                        } catch {
+                            userLogger.error("Failed to clear currentlyListening on sign out: \(error.localizedDescription)")
+                        }
                     }()
                     async let removeToken: Void = {
-                        try? await self.notificationService.removeDeviceToken(forUserId: userId)
+                        do {
+                            try await self.notificationService.removeDeviceToken(forUserId: userId)
+                        } catch {
+                            notifLogger.error("Failed to remove device token on sign out: \(error.localizedDescription)")
+                        }
                     }()
                     _ = await (clearListening, removeToken)
                 }
@@ -138,6 +148,38 @@ final class AuthViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Delete Account
+
+    /// Deletes the user's account: removes all Firestore data, then deletes the Firebase Auth account.
+    func deleteAccount() async {
+        guard let userId = currentUser?.id else {
+            errorMessage = String(localized: "No user signed in.")
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // 1. Delete all Firestore data (user doc, subcollections)
+            try await userService.deleteAllUserData(userId: userId)
+
+            // 2. Delete the Firebase Auth account
+            try await authService.deleteAccount()
+
+            // 3. Clear local state
+            currentUser = nil
+            isSignedIn = false
+
+            Log.auth.info("Account deleted successfully for user \(userId)")
+        } catch {
+            Log.auth.error("Account deletion failed: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
     }
 
     // MARK: - Listen for Auth Changes

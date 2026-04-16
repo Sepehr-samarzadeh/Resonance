@@ -1,6 +1,7 @@
 //  ProfileHeaderView.swift
 //  Resonance
 
+import PhotosUI
 import SwiftUI
 
 // MARK: - ProfileHeaderView
@@ -11,6 +12,9 @@ struct ProfileHeaderView: View {
 
     let user: ResonanceUser?
     let isUploadingPhoto: Bool
+    var onPhotoSelected: ((Data) -> Void)?
+
+    @State private var selectedPhoto: PhotosPickerItem?
 
     // MARK: - Body
 
@@ -76,7 +80,26 @@ struct ProfileHeaderView: View {
 
     private var photoSection: some View {
         ZStack {
-            profilePhoto
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                ZStack {
+                    profilePhoto
+
+                    // Camera badge overlay
+                    if onPhotoSelected != nil && !isUploadingPhoto {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 36, height: 36)
+                            .overlay {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                            }
+                            .offset(x: 48, y: 48)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(onPhotoSelected == nil)
 
             if isUploadingPhoto {
                 Circle()
@@ -86,6 +109,20 @@ struct ProfileHeaderView: View {
                         ProgressView()
                             .tint(.musicRed)
                     }
+            }
+        }
+        .onChange(of: selectedPhoto) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                    // Compress to JPEG
+                    #if canImport(UIKit)
+                    if let uiImage = UIImage(data: data),
+                       let jpegData = uiImage.jpegData(compressionQuality: 0.8) {
+                        onPhotoSelected?(jpegData)
+                    }
+                    #endif
+                }
             }
         }
     }

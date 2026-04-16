@@ -42,4 +42,48 @@ enum Constants {
         static let cornerRadiusMedium: CGFloat = 12
         static let cornerRadiusLarge: CGFloat = 20
     }
+
+    // MARK: - Profile Limits
+
+    enum ProfileLimits {
+        static let displayNameMax = 50
+        static let bioMax = 300
+        static let pronounsMax = 30
+        static let moodMax = 100
+        static let songNameMax = 100
+        static let artistNameMax = 100
+        static let usernameMax = 30
+        static let maxGenres = 10
+    }
+
+    // MARK: - Legal
+
+    enum Legal {
+        // TODO: Replace with actual URLs before App Store submission
+        static let privacyPolicyURL = URL(string: "https://resonance.app/privacy")!
+        static let termsOfServiceURL = URL(string: "https://resonance.app/terms")!
+    }
+
+    // MARK: - Music Genres
+
+    /// Apple Music genre list used for onboarding and profile editing.
+    enum Genres {
+        static let all: [String] = [
+            "Pop", "Rock", "Hip-Hop", "R&B", "Jazz", "Classical",
+            "Electronic", "Country", "Latin", "Metal", "Indie",
+            "Alternative", "Soul", "Funk", "Reggae", "Blues",
+            "Folk", "Punk", "K-Pop", "J-Pop", "Afrobeats",
+            "Dance", "Lo-Fi", "Ambient", "Gospel", "Soundtrack"
+        ]
+
+        static let emojis: [String: String] = [
+            "Pop": "🎤", "Rock": "🎸", "Hip-Hop": "🎙️", "R&B": "🎵",
+            "Jazz": "🎷", "Classical": "🎻", "Electronic": "🎛️", "Country": "🤠",
+            "Latin": "💃", "Metal": "🤘", "Indie": "🎹", "Alternative": "🔊",
+            "Soul": "❤️", "Funk": "🕺", "Reggae": "🌴", "Blues": "🎺",
+            "Folk": "🪕", "Punk": "⚡", "K-Pop": "🇰🇷", "J-Pop": "🇯🇵",
+            "Afrobeats": "🥁", "Dance": "🪩", "Lo-Fi": "☕", "Ambient": "🌊",
+            "Gospel": "🙏", "Soundtrack": "🎬"
+        ]
+    }
 }

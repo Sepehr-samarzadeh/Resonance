@@ -11,6 +11,7 @@ final class MockChatService: ChatServiceProtocol, @unchecked Sendable {
     var sendMessageCallCount = 0
     var fetchMessagesCallCount = 0
     var messageChangesCallCount = 0
+    var deleteMessageCallCount = 0
     var markMessagesAsReadCallCount = 0
     var unreadCountCallCount = 0
     var fetchLastMessageCallCount = 0
@@ -18,6 +19,7 @@ final class MockChatService: ChatServiceProtocol, @unchecked Sendable {
     // MARK: - Stubbed Results
 
     var stubbedSendMessageError: Error?
+    var stubbedDeleteMessageError: Error?
     var stubbedFetchMessagesResult: Result<[Message], Error> = .success([])
     var stubbedMessageChanges: [[Message]] = []
     var stubbedMarkMessagesAsReadError: Error?
@@ -38,6 +40,11 @@ final class MockChatService: ChatServiceProtocol, @unchecked Sendable {
         capturedSendMessageSenderId = senderId
         capturedSendMessageText = text
         if let error = stubbedSendMessageError { throw error }
+    }
+
+    func deleteMessage(matchId: String, messageId: String) async throws {
+        deleteMessageCallCount += 1
+        if let error = stubbedDeleteMessageError { throw error }
     }
 
     func fetchMessages(matchId: String, limit: Int) async throws -> [Message] {

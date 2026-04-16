@@ -78,6 +78,7 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
         artistId: "artist-1",
         artistName: "Test Artist",
         genre: "Pop",
+        artworkURL: nil,
         listenedAt: Date(),
         durationSeconds: 200
     )
@@ -175,6 +176,16 @@ final class MockMusicService: MusicServiceProtocol, @unchecked Sendable {
     func fetchProfilePhotoURL(width: Int, height: Int) async throws -> URL? {
         fetchProfilePhotoURLCallCount += 1
         return stubbedProfilePhotoURL
+    }
+
+    // MARK: - Artwork URLs
+
+    var fetchArtworkURLsCallCount = 0
+    var stubbedArtworkURLs: [String: String] = [:]
+
+    func fetchArtworkURLs(for songIds: [String], width: Int, height: Int) async throws -> [String: String] {
+        fetchArtworkURLsCallCount += 1
+        return stubbedArtworkURLs
     }
 
     // MARK: - Library

@@ -2,6 +2,7 @@
 //  Resonance
 
 import Foundation
+import SwiftUI
 import OSLog
 
 // MARK: - MatchViewModel
@@ -77,6 +78,25 @@ final class MatchViewModel {
         }
     }
 
+    // MARK: - Delete Match
+
+    /// Deletes a match (conversation) and removes it from the local list.
+    func deleteMatch(matchId: String) async {
+        // Remove from local array first (inside an animation transaction)
+        // so SwiftUI's List diffing stays consistent with the swipe-delete animation.
+        withAnimation {
+            matches.removeAll { $0.id == matchId }
+        }
+
+        do {
+            try await matchService.deleteMatch(matchId: matchId)
+        } catch {
+            // Restore on failure — reload from server
+            errorMessage = error.localizedDescription
+            Log.match.error("Failed to delete match \(matchId): \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Check for Real-Time Match
 
     /// Checks if any other users are listening to the same song or artist and creates matches.
@@ -141,6 +161,11 @@ final class MatchViewModel {
         guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else {
             return nil
         }
-        return try? await userService.fetchUser(userId: otherUserId)
+        do {
+            return try await userService.fetchUser(userId: otherUserId)
+        } catch {
+            Log.user.error("Failed to fetch other user \(otherUserId): \(error.localizedDescription)")
+            return nil
+        }
     }
 }

@@ -312,6 +312,30 @@ actor MatchService: MatchServiceProtocol {
         }
     }
 
+    // MARK: - Delete Match
+
+    /// Deletes a match document and all messages in its subcollection.
+    func deleteMatch(matchId: String) async throws {
+        let messagesRef = db.collection(matchesCollection)
+            .document(matchId)
+            .collection("messages")
+
+        // Delete all messages in batches
+        let snapshot = try await messagesRef.getDocuments()
+        if !snapshot.documents.isEmpty {
+            let batch = db.batch()
+            for doc in snapshot.documents {
+                batch.deleteDocument(doc.reference)
+            }
+            try await batch.commit()
+        }
+
+        // Delete the match document itself
+        try await db.collection(matchesCollection)
+            .document(matchId)
+            .delete()
+    }
+
     // MARK: - Fetch Recent User IDs (for historical matching)
 
     /// Fetches user IDs who have been active recently (have listening sessions).

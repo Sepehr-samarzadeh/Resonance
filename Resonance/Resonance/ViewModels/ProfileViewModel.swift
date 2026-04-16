@@ -16,6 +16,7 @@ final class ProfileViewModel {
     var user: ResonanceUser?
     var listeningHistory: [ListeningSession] = []
     var importedPlaylists: [ImportedPlaylist] = []
+    var onRepeatSongs: [OnRepeatSong] = []
     var isLoading = false
     var isSaving = false
     var isUploadingPhoto = false
@@ -35,12 +36,14 @@ final class ProfileViewModel {
 
     private let userService: any UserServiceProtocol
     private let musicService: any MusicServiceProtocol
+    private let storageService: any StorageServiceProtocol
 
     // MARK: - Init
 
-    init(userService: some UserServiceProtocol, musicService: some MusicServiceProtocol) {
+    init(userService: some UserServiceProtocol, musicService: some MusicServiceProtocol, storageService: some StorageServiceProtocol) {
         self.userService = userService
         self.musicService = musicService
+        self.storageService = storageService
     }
 
     // MARK: - Load Profile
@@ -71,6 +74,7 @@ final class ProfileViewModel {
             }
 
             listeningHistory = try await userService.fetchListeningHistory(userId: userId, limit: 20)
+            await buildOnRepeatSongs()
 
             // Load imported playlists
             await loadImportedPlaylists(userId: userId)
@@ -147,6 +151,31 @@ final class ProfileViewModel {
 
     // MARK: - Profile Photo
 
+    /// Uploads a user-selected photo to Firebase Storage and updates their profile.
+    /// - Parameters:
+    ///   - userId: The current user's ID.
+    ///   - imageData: JPEG-compressed image data.
+    func uploadProfilePhoto(userId: String, imageData: Data) async {
+        guard !userId.isEmpty else {
+            Log.user.error("uploadProfilePhoto called with empty userId")
+            return
+        }
+
+        isUploadingPhoto = true
+        errorMessage = nil
+
+        do {
+            let downloadURL = try await storageService.uploadProfilePhoto(imageData: imageData, userId: userId)
+            try await userService.updatePhotoURL(userId: userId, photoURL: downloadURL)
+            user = try await userService.fetchUser(userId: userId)
+        } catch {
+            Log.user.error("Failed to upload profile photo: \(error.localizedDescription)")
+            errorMessage = String(localized: "Failed to upload photo. Please try again.")
+        }
+
+        isUploadingPhoto = false
+    }
+
     /// Fetches the user's Apple Music social profile photo and saves the URL to Firestore.
     /// Does nothing if the user already has a photo URL set.
     func fetchAndSetAppleMusicPhoto(userId: String) async {
@@ -173,6 +202,59 @@ final class ProfileViewModel {
         isUploadingPhoto = false
     }
 
+    // MARK: - On Repeat
+
+    /// Aggregates listening history into top songs by play count and fetches
+    /// missing artwork URLs from Apple Music.
+    func buildOnRepeatSongs() async {
+        // Group sessions by songId
+        var grouped: [String: (sessions: [ListeningSession], totalSeconds: Int)] = [:]
+        for session in listeningHistory {
+            var entry = grouped[session.songId, default: (sessions: [], totalSeconds: 0)]
+            entry.sessions.append(session)
+            entry.totalSeconds += session.durationSeconds
+            grouped[session.songId] = entry
+        }
+
+        // Sort by play count (descending), take top 5
+        let top = grouped
+            .sorted { $0.value.sessions.count > $1.value.sessions.count }
+            .prefix(5)
+
+        // Collect song IDs that need artwork
+        let missingArtworkIds = top.compactMap { songId, entry -> String? in
+            entry.sessions.first?.artworkURL == nil ? songId : nil
+        }
+
+        // Batch-fetch missing artwork from Apple Music
+        var artworkMap: [String: String] = [:]
+        if !missingArtworkIds.isEmpty {
+            do {
+                artworkMap = try await musicService.fetchArtworkURLs(for: missingArtworkIds, width: 300, height: 300)
+            } catch {
+                Log.music.error("Failed to fetch artwork URLs for On Repeat: \(error.localizedDescription)")
+            }
+        }
+
+        // Build final array
+        onRepeatSongs = top.map { songId, entry in
+            let representative = entry.sessions
+                .sorted { $0.listenedAt > $1.listenedAt }
+                .first!
+            let artwork = representative.artworkURL ?? artworkMap[songId]
+            return OnRepeatSong(
+                id: songId,
+                songName: representative.songName,
+                artistName: representative.artistName,
+                genre: representative.genre,
+                artworkURL: artwork,
+                playCount: entry.sessions.count,
+                totalSeconds: entry.totalSeconds,
+                lastPlayed: representative.listenedAt
+            )
+        }
+    }
+
     // MARK: - Auto-Populate Top Artists
 
     /// Fetches the user's recently played songs and extracts unique artists,
@@ -193,10 +275,14 @@ final class ProfileViewModel {
                     var artworkURL = songArtworkURL
 
                     // Try to get the actual artist photo from MusicKit
-                    if let artists = try? await musicService.searchArtists(query: artistName, limit: 1),
-                       let artist = artists.first,
-                       let artistArt = artist.artwork?.url(width: 200, height: 200) {
-                        artworkURL = artistArt.absoluteString
+                    do {
+                        let artists = try await musicService.searchArtists(query: artistName, limit: 1)
+                        if let artist = artists.first,
+                           let artistArt = artist.artwork?.url(width: 200, height: 200) {
+                            artworkURL = artistArt.absoluteString
+                        }
+                    } catch {
+                        Log.music.error("Failed to look up artist artwork for \(artistName): \(error.localizedDescription)")
                     }
 
                     topArtists.append(TopArtist(

@@ -12,6 +12,7 @@ struct ListeningSession: Identifiable, Sendable {
     var artistId: String
     var artistName: String
     var genre: String?
+    var artworkURL: String?
     var listenedAt: Date
     var durationSeconds: Int
 }
@@ -20,7 +21,7 @@ struct ListeningSession: Identifiable, Sendable {
 
 extension ListeningSession: Codable {
     enum CodingKeys: String, CodingKey {
-        case id, songId, songName, artistId, artistName, genre, listenedAt, durationSeconds
+        case id, songId, songName, artistId, artistName, genre, artworkURL, listenedAt, durationSeconds
     }
 
     nonisolated init(from decoder: any Decoder) throws {
@@ -31,6 +32,7 @@ extension ListeningSession: Codable {
         artistId = try container.decodeIfPresent(String.self, forKey: .artistId) ?? ""
         artistName = try container.decodeIfPresent(String.self, forKey: .artistName) ?? ""
         genre = try container.decodeIfPresent(String.self, forKey: .genre)
+        artworkURL = try container.decodeIfPresent(String.self, forKey: .artworkURL)
         listenedAt = try container.decodeIfPresent(Date.self, forKey: .listenedAt) ?? Date()
         durationSeconds = try container.decodeIfPresent(Int.self, forKey: .durationSeconds) ?? 0
     }
@@ -43,6 +45,7 @@ extension ListeningSession: Codable {
         try container.encode(artistId, forKey: .artistId)
         try container.encode(artistName, forKey: .artistName)
         try container.encodeIfPresent(genre, forKey: .genre)
+        try container.encodeIfPresent(artworkURL, forKey: .artworkURL)
         try container.encode(listenedAt, forKey: .listenedAt)
         try container.encode(durationSeconds, forKey: .durationSeconds)
     }

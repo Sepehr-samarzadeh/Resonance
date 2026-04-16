@@ -75,4 +75,9 @@ protocol UserServiceProtocol: Sendable {
 
     /// Deletes an imported playlist from the user's subcollection.
     func deleteImportedPlaylist(userId: String, playlistId: String) async throws
+
+    // MARK: - Account Deletion
+
+    /// Deletes all user data from Firestore (user document, listening history, imported playlists).
+    func deleteAllUserData(userId: String) async throws
 }

@@ -18,6 +18,9 @@ protocol ChatServiceProtocol: Sendable {
     /// Returns an `AsyncStream` that emits messages for a match in real time.
     func messageChanges(matchId: String) -> AsyncStream<[Message]>
 
+    /// Deletes a single message from a match conversation.
+    func deleteMessage(matchId: String, messageId: String) async throws
+
     /// Marks all unread messages from other users as read.
     func markMessagesAsRead(matchId: String, currentUserId: String) async throws
 

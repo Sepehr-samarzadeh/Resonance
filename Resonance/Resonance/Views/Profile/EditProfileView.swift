@@ -12,7 +12,12 @@ struct EditProfileView: View {
     @State var viewModel: ProfileViewModel
     let userId: String
     @Environment(\.dismiss) private var dismiss
-    @State private var newGenre = ""
+
+    // MARK: - Computed
+
+    private var isSaveDisabled: Bool {
+        viewModel.isSaving || viewModel.editDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     // MARK: - Body
 
@@ -43,7 +48,7 @@ struct EditProfileView: View {
                         dismiss()
                     }
                 }
-                .disabled(viewModel.isSaving)
+                .disabled(isSaveDisabled)
             }
         }
         .overlay {
@@ -58,7 +63,17 @@ struct EditProfileView: View {
     private var basicInfoSection: some View {
         Section {
             TextField(String(localized: "Your name"), text: $viewModel.editDisplayName)
+                .onChange(of: viewModel.editDisplayName) { _, newValue in
+                    if newValue.count > Constants.ProfileLimits.displayNameMax {
+                        viewModel.editDisplayName = String(newValue.prefix(Constants.ProfileLimits.displayNameMax))
+                    }
+                }
             TextField(String(localized: "e.g. she/her, he/him, they/them"), text: $viewModel.editPronouns)
+                .onChange(of: viewModel.editPronouns) { _, newValue in
+                    if newValue.count > Constants.ProfileLimits.pronounsMax {
+                        viewModel.editPronouns = String(newValue.prefix(Constants.ProfileLimits.pronounsMax))
+                    }
+                }
         } header: {
             Text(String(localized: "Basic Info"))
         }
@@ -74,15 +89,25 @@ struct EditProfileView: View {
                 axis: .vertical
             )
             .lineLimit(3...6)
+            .onChange(of: viewModel.editBio) { _, newValue in
+                if newValue.count > Constants.ProfileLimits.bioMax {
+                    viewModel.editBio = String(newValue.prefix(Constants.ProfileLimits.bioMax))
+                }
+            }
 
             TextField(
                 String(localized: "What's your vibe right now?"),
                 text: $viewModel.editMood
             )
+            .onChange(of: viewModel.editMood) { _, newValue in
+                if newValue.count > Constants.ProfileLimits.moodMax {
+                    viewModel.editMood = String(newValue.prefix(Constants.ProfileLimits.moodMax))
+                }
+            }
         } header: {
             Text(String(localized: "About"))
         } footer: {
-            Text(String(localized: "Your mood is shown on your profile card."))
+            Text(String(localized: "\(viewModel.editBio.count)/\(Constants.ProfileLimits.bioMax) · Your mood is shown on your profile card."))
         }
     }
 
@@ -91,7 +116,17 @@ struct EditProfileView: View {
     private var favoriteSongSection: some View {
         Section {
             TextField(String(localized: "Song name"), text: $viewModel.editFavoriteSongName)
+                .onChange(of: viewModel.editFavoriteSongName) { _, newValue in
+                    if newValue.count > Constants.ProfileLimits.songNameMax {
+                        viewModel.editFavoriteSongName = String(newValue.prefix(Constants.ProfileLimits.songNameMax))
+                    }
+                }
             TextField(String(localized: "Artist name"), text: $viewModel.editFavoriteSongArtist)
+                .onChange(of: viewModel.editFavoriteSongArtist) { _, newValue in
+                    if newValue.count > Constants.ProfileLimits.artistNameMax {
+                        viewModel.editFavoriteSongArtist = String(newValue.prefix(Constants.ProfileLimits.artistNameMax))
+                    }
+                }
         } header: {
             Text(String(localized: "Favorite Song"))
         } footer: {
@@ -104,22 +139,21 @@ struct EditProfileView: View {
     private var genresSection: some View {
         Section {
             ForEach(viewModel.editFavoriteGenres, id: \.self) { genre in
-                Text(genre)
+                HStack {
+                    if let emoji = Constants.Genres.emojis[genre] {
+                        Text(emoji)
+                    }
+                    Text(genre)
+                }
             }
             .onDelete { indexSet in
                 viewModel.editFavoriteGenres.remove(atOffsets: indexSet)
             }
 
-            HStack {
-                TextField(String(localized: "Add genre"), text: $newGenre)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        addGenre()
-                    }
-                Button(String(localized: "Add")) {
-                    addGenre()
-                }
-                .disabled(newGenre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            NavigationLink {
+                GenrePickerView(selectedGenres: $viewModel.editFavoriteGenres)
+            } label: {
+                Label(String(localized: "Add Genres"), systemImage: "plus.circle")
             }
         } header: {
             Text(String(localized: "Favorite Genres"))
@@ -138,6 +172,11 @@ struct EditProfileView: View {
                     .textContentType(.username)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .onChange(of: viewModel.editInstagram) { _, newValue in
+                        if newValue.count > Constants.ProfileLimits.usernameMax {
+                            viewModel.editInstagram = String(newValue.prefix(Constants.ProfileLimits.usernameMax))
+                        }
+                    }
             }
             HStack {
                 Image(systemName: "music.note")
@@ -147,6 +186,11 @@ struct EditProfileView: View {
                     .textContentType(.username)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .onChange(of: viewModel.editSpotify) { _, newValue in
+                        if newValue.count > Constants.ProfileLimits.usernameMax {
+                            viewModel.editSpotify = String(newValue.prefix(Constants.ProfileLimits.usernameMax))
+                        }
+                    }
             }
             HStack {
                 Image(systemName: "at")
@@ -156,6 +200,11 @@ struct EditProfileView: View {
                     .textContentType(.username)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .onChange(of: viewModel.editTwitter) { _, newValue in
+                        if newValue.count > Constants.ProfileLimits.usernameMax {
+                            viewModel.editTwitter = String(newValue.prefix(Constants.ProfileLimits.usernameMax))
+                        }
+                    }
             }
         } header: {
             Text(String(localized: "Social Links"))
@@ -164,14 +213,4 @@ struct EditProfileView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    private func addGenre() {
-        let trimmed = newGenre.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        if !viewModel.editFavoriteGenres.contains(trimmed) {
-            viewModel.editFavoriteGenres.append(trimmed)
-        }
-        newGenre = ""
-    }
 }

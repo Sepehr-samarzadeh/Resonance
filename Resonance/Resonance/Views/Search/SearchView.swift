@@ -80,9 +80,17 @@ private struct SearchContentView: View {
         )
         .searchSuggestions {
             if !viewModel.suggestions.isEmpty {
-                ForEach(viewModel.suggestions) { song in
+                ForEach(Array(viewModel.suggestions.enumerated()), id: \.element.id) { index, song in
                     SearchSuggestionRow(song: song)
                         .searchCompletion(song.title)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity
+                                    .combined(with: .move(edge: .bottom))
+                                    .animation(.spring(duration: 0.35, bounce: 0.2).delay(Double(index) * 0.05)),
+                                removal: .opacity.animation(.easeOut(duration: 0.15))
+                            )
+                        )
                 }
             }
         }

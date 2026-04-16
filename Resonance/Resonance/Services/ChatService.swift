@@ -89,6 +89,17 @@ actor ChatService: ChatServiceProtocol {
         }
     }
 
+    // MARK: - Delete Message
+
+    /// Deletes a single message from a match conversation.
+    func deleteMessage(matchId: String, messageId: String) async throws {
+        try await db.collection(matchesCollection)
+            .document(matchId)
+            .collection(messagesSubcollection)
+            .document(messageId)
+            .delete()
+    }
+
     // MARK: - Mark as Read
 
     /// Marks all unread messages from other users as read.

@@ -89,6 +89,7 @@ enum TestData {
         artistId: String = "artist-1",
         artistName: String = "Test Artist",
         genre: String? = "Pop",
+        artworkURL: String? = nil,
         listenedAt: Date = Date(),
         durationSeconds: Int = 200
     ) -> ListeningSession {
@@ -99,6 +100,7 @@ enum TestData {
             artistId: artistId,
             artistName: artistName,
             genre: genre,
+            artworkURL: artworkURL,
             listenedAt: listenedAt,
             durationSeconds: durationSeconds
         )

@@ -81,6 +81,17 @@ final class ChatViewModel {
         }
     }
 
+    // MARK: - Delete Message
+
+    /// Deletes a message from the conversation.
+    func deleteMessage(matchId: String, messageId: String) async {
+        do {
+            try await chatService.deleteMessage(matchId: matchId, messageId: messageId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     // MARK: - Mark as Read
 
     /// Marks unread messages from the other user as read.

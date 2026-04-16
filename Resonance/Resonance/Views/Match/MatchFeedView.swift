@@ -63,6 +63,7 @@ private struct MatchFeedContent: View {
                         systemImage: "person.2.slash",
                         description: Text(String(localized: "Start listening to music and we'll find people who share your taste."))
                     )
+                    .containerRelativeFrame(.vertical)
                 } else {
                     ForEach(Array(viewModel.matches.enumerated()), id: \.element.id) { index, match in
                         NavigationLink(value: match) {

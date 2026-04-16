@@ -104,4 +104,8 @@ protocol MusicServiceProtocol: Sendable {
     /// Fetches unique artist names from the user's Apple Music library.
     /// Used during onboarding to build the taste profile for matching.
     func fetchLibraryArtistNames(limit: Int) async throws -> [String]
+
+    /// Fetches artwork URLs for a batch of song catalog IDs.
+    /// Returns a dictionary mapping song ID to artwork URL string.
+    func fetchArtworkURLs(for songIds: [String], width: Int, height: Int) async throws -> [String: String]
 }

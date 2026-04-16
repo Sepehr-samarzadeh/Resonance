@@ -16,6 +16,7 @@ struct ProfileView: View {
     let currentUserId: String
     let playerViewModel: PlayerViewModel
     var onSignOut: () -> Void
+    var onDeleteAccount: () async -> Void
 
     // MARK: - Body
 
@@ -26,7 +27,8 @@ struct ProfileView: View {
                     viewModel: viewModel,
                     currentUserId: currentUserId,
                     playerViewModel: playerViewModel,
-                    onSignOut: onSignOut
+                    onSignOut: onSignOut,
+                    onDeleteAccount: onDeleteAccount
                 )
             } else {
                 SkeletonProfileHeader()
@@ -52,7 +54,8 @@ struct ProfileView: View {
             if viewModel == nil {
                 viewModel = ProfileViewModel(
                     userService: services.userService,
-                    musicService: services.musicService
+                    musicService: services.musicService,
+                    storageService: services.storageService
                 )
             }
             await viewModel?.loadProfile(userId: currentUserId)
@@ -96,6 +99,7 @@ struct ProfileContentView: View {
     let currentUserId: String
     let playerViewModel: PlayerViewModel
     var onSignOut: () -> Void
+    var onDeleteAccount: () async -> Void
 
     @State private var sectionAppeared = false
     @State private var showPlaylistImport = false
@@ -108,7 +112,12 @@ struct ProfileContentView: View {
                 // Header with gradient, photo, name, bio, mood
                 ProfileHeaderView(
                     user: viewModel.user,
-                    isUploadingPhoto: viewModel.isUploadingPhoto
+                    isUploadingPhoto: viewModel.isUploadingPhoto,
+                    onPhotoSelected: { imageData in
+                        Task {
+                            await viewModel.uploadProfilePhoto(userId: currentUserId, imageData: imageData)
+                        }
+                    }
                 )
 
                 // All sections below the header
@@ -160,18 +169,46 @@ struct ProfileContentView: View {
                         socialLinks: viewModel.user?.socialLinks
                     )
 
-                    // Listening history
-                    ProfileListeningHistorySection(
-                        sessions: viewModel.listeningHistory
+                    // On Repeat — most-played songs
+                    ProfileOnRepeatSection(
+                        songs: viewModel.onRepeatSongs
                     )
 
-                    // Settings & account
-                    ProfileSettingsSection(
-                        currentUserId: currentUserId,
-                        userEmail: viewModel.user?.email,
-                        authProvider: viewModel.user?.authProvider,
-                        onSignOut: onSignOut
-                    )
+                    // Settings
+                    NavigationLink {
+                        ProfileSettingsSection(
+                            currentUserId: currentUserId,
+                            userEmail: viewModel.user?.email,
+                            authProvider: viewModel.user?.authProvider,
+                            onSignOut: onSignOut,
+                            onDeleteAccount: {
+                                await onDeleteAccount()
+                            }
+                        )
+                        .padding(.horizontal)
+                        .navigationTitle(String(localized: "Settings"))
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.musicRed)
+                                .frame(width: 32, height: 32)
+
+                            Text(String(localized: "Settings"))
+                                .font(.subheadline)
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal)
                 .opacity(sectionAppeared ? 1 : 0)

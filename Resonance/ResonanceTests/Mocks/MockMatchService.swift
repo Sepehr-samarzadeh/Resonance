@@ -17,6 +17,7 @@ final class MockMatchService: MatchServiceProtocol, @unchecked Sendable {
     var fetchMatchesCallCount = 0
     var fetchMatchesPaginatedCallCount = 0
     var matchChangesCallCount = 0
+    var deleteMatchCallCount = 0
     var fetchRecentUserIdsCallCount = 0
     var createHistoricalMatchCallCount = 0
 
@@ -31,6 +32,7 @@ final class MockMatchService: MatchServiceProtocol, @unchecked Sendable {
     var stubbedFetchMatches: Result<[Match], Error> = .success([])
     var stubbedFetchMatchesPaginated: Result<[Match], Error> = .success([])
     var stubbedMatchChanges: [[Match]] = []
+    var stubbedDeleteMatchError: Error?
     var stubbedFetchRecentUserIds: Result<[String], Error> = .success([])
     var stubbedCreateHistoricalMatch: Result<String?, Error> = .success(nil)
 
@@ -93,6 +95,11 @@ final class MockMatchService: MatchServiceProtocol, @unchecked Sendable {
             }
             continuation.finish()
         }
+    }
+
+    func deleteMatch(matchId: String) async throws {
+        deleteMatchCallCount += 1
+        if let error = stubbedDeleteMatchError { throw error }
     }
 
     func fetchRecentUserIds(excluding excludingUserId: String, limit: Int) async throws -> [String] {

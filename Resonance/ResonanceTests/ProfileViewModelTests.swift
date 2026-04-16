@@ -15,13 +15,15 @@ struct ProfileViewModelTests {
 
     private func makeSUT(
         userService: MockUserService = MockUserService(),
-        musicService: MockMusicService = MockMusicService()
-    ) -> (viewModel: ProfileViewModel, user: MockUserService, music: MockMusicService) {
+        musicService: MockMusicService = MockMusicService(),
+        storageService: MockStorageService = MockStorageService()
+    ) -> (viewModel: ProfileViewModel, user: MockUserService, music: MockMusicService, storage: MockStorageService) {
         let vm = ProfileViewModel(
             userService: userService,
-            musicService: musicService
+            musicService: musicService,
+            storageService: storageService
         )
-        return (vm, userService, musicService)
+        return (vm, userService, musicService, storageService)
     }
 
     // MARK: - Load Profile
@@ -43,7 +45,7 @@ struct ProfileViewModelTests {
         user.stubbedFetchUserResult = .success(testUser)
         user.stubbedFetchListeningHistoryResult = .success(testHistory)
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         await vm.loadProfile(userId: "user-1")
 
@@ -68,7 +70,7 @@ struct ProfileViewModelTests {
         let user = MockUserService()
         user.stubbedFetchUserResult = .failure(NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Fetch failed"]))
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         await vm.loadProfile(userId: "user-1")
 
@@ -85,7 +87,7 @@ struct ProfileViewModelTests {
         let updatedUser = TestData.makeUser(displayName: "Bob", bio: "Updated bio", favoriteGenres: ["Jazz"])
         user.stubbedFetchUserResult = .success(updatedUser)
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         vm.editDisplayName = "Bob"
         vm.editBio = "Updated bio"
@@ -125,7 +127,7 @@ struct ProfileViewModelTests {
         let user = MockUserService()
         user.stubbedUpdateDisplayNameError = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Save failed"])
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         vm.editDisplayName = "Bob"
 
@@ -146,7 +148,7 @@ struct ProfileViewModelTests {
         let updatedUser = TestData.makeUser(photoURL: "https://is1-ssl.mzstatic.com/image/photo.jpg")
         user.stubbedFetchUserResult = .success(updatedUser)
 
-        let (vm, _, _) = makeSUT(userService: user, musicService: music)
+        let (vm, _, _, _) = makeSUT(userService: user, musicService: music)
         // User starts with no photo
         vm.user = TestData.makeUser(photoURL: nil)
 
@@ -163,7 +165,7 @@ struct ProfileViewModelTests {
         let music = MockMusicService()
         music.stubbedProfilePhotoURL = URL(string: "https://example.com/new.jpg")
 
-        let (vm, user, _) = makeSUT(musicService: music)
+        let (vm, user, _, _) = makeSUT(musicService: music)
         // User already has a photo
         vm.user = TestData.makeUser(photoURL: "https://example.com/existing.jpg")
 
@@ -179,7 +181,7 @@ struct ProfileViewModelTests {
         let music = MockMusicService()
         music.stubbedProfilePhotoURL = nil
 
-        let (vm, user, _) = makeSUT(musicService: music)
+        let (vm, user, _, _) = makeSUT(musicService: music)
         vm.user = TestData.makeUser(photoURL: nil)
 
         await vm.fetchAndSetAppleMusicPhoto(userId: "user-1")
@@ -198,7 +200,7 @@ struct ProfileViewModelTests {
         let user = MockUserService()
         user.stubbedUserChanges = [updatedUser]
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         await vm.listenForProfileChanges(userId: "user-1")
 
@@ -213,7 +215,7 @@ struct ProfileViewModelTests {
         user.stubbedFetchUserResult = .success(nil)
         user.stubbedFetchListeningHistoryResult = .success([])
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         #expect(vm.isLoading == false)
 
@@ -229,7 +231,7 @@ struct ProfileViewModelTests {
         let user = MockUserService()
         user.stubbedFetchUserResult = .success(TestData.makeUser())
 
-        let (vm, _, _) = makeSUT(userService: user)
+        let (vm, _, _, _) = makeSUT(userService: user)
 
         vm.editDisplayName = "Test"
         vm.editBio = ""
@@ -255,5 +257,45 @@ struct ProfileViewModelTests {
         // Social links should be nil (all empty)
         #expect(user.updateSocialLinksCallCount == 1)
         #expect(user.capturedSocialLinks == .some(nil))
+    }
+
+    // MARK: - Upload Profile Photo
+
+    @Test("uploadProfilePhoto uploads data and updates photoURL")
+    func uploadProfilePhotoSuccess() async {
+        let storage = MockStorageService()
+        storage.stubbedUploadProfilePhotoResult = .success("https://storage.example.com/photo.jpg")
+
+        let user = MockUserService()
+        let updatedUser = TestData.makeUser(photoURL: "https://storage.example.com/photo.jpg")
+        user.stubbedFetchUserResult = .success(updatedUser)
+
+        let (vm, _, _, _) = makeSUT(userService: user, storageService: storage)
+        let testData = Data([0x00, 0x01, 0x02])
+
+        await vm.uploadProfilePhoto(userId: "user-1", imageData: testData)
+
+        #expect(storage.uploadProfilePhotoCallCount == 1)
+        #expect(storage.capturedImageData == testData)
+        #expect(storage.capturedUserId == "user-1")
+        #expect(user.updatePhotoURLCallCount == 1)
+        #expect(user.capturedPhotoURL == "https://storage.example.com/photo.jpg")
+        #expect(vm.user?.photoURL == "https://storage.example.com/photo.jpg")
+        #expect(vm.isUploadingPhoto == false)
+        #expect(vm.errorMessage == nil)
+    }
+
+    @Test("uploadProfilePhoto sets error on failure")
+    func uploadProfilePhotoFailure() async {
+        let storage = MockStorageService()
+        storage.stubbedUploadProfilePhotoResult = .failure(NSError(domain: "test", code: 1))
+
+        let (vm, _, _, _) = makeSUT(storageService: storage)
+
+        await vm.uploadProfilePhoto(userId: "user-1", imageData: Data([0xFF]))
+
+        #expect(storage.uploadProfilePhotoCallCount == 1)
+        #expect(vm.errorMessage != nil)
+        #expect(vm.isUploadingPhoto == false)
     }
 }

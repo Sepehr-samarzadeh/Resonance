@@ -42,7 +42,7 @@ actor AuthService: AuthServiceProtocol {
 
     /// Prepares a nonce for Sign in with Apple and returns both the raw and hashed versions.
     func prepareAppleSignIn() -> (nonce: String, hashedNonce: String) {
-        let nonce = randomNonceString()
+        let nonce = (try? randomNonceString()) ?? UUID().uuidString
         currentNonce = nonce
         let hashedNonce = sha256(nonce)
         return (nonce, hashedNonce)
@@ -174,6 +174,17 @@ actor AuthService: AuthServiceProtocol {
         GIDSignIn.sharedInstance.signOut()
     }
 
+    // MARK: - Delete Account
+
+    /// Deletes the currently authenticated user's Firebase Auth account.
+    /// Throws if the user is not signed in or re-authentication is required.
+    func deleteAccount() async throws {
+        guard let user = Auth.auth().currentUser else {
+            throw AuthError.unknown(String(localized: "No user is currently signed in."))
+        }
+        try await user.delete()
+    }
+
     // MARK: - Auth State Listener
 
     /// Returns an `AsyncStream` that emits the current Firebase user's UID whenever auth state changes.
@@ -219,12 +230,12 @@ actor AuthService: AuthServiceProtocol {
         return components.isEmpty ? nil : components.joined(separator: " ")
     }
 
-    private func randomNonceString(length: Int = 32) -> String {
+    private func randomNonceString(length: Int = 32) throws -> String {
         precondition(length > 0)
         var randomBytes = [UInt8](repeating: 0, count: length)
         let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
-        if errorCode != errSecSuccess {
-            fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+        guard errorCode == errSecSuccess else {
+            throw AuthError.unknown(String(localized: "Unable to generate secure nonce. Please try again."))
         }
         let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
         return String(randomBytes.map { charset[Int($0) % charset.count] })
