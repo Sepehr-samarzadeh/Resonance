@@ -15,5 +15,7 @@
 	</array>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Resonance needs access to Apple Music to play songs and match you with others who share your music taste.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Resonance needs access to your photo library so you can choose a profile photo.</string>
 </dict>
 </plist>
