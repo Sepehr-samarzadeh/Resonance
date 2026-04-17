@@ -36,6 +36,7 @@ struct ProfileView: View {
             }
         }
         .navigationTitle(String(localized: "Profile"))
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(String(localized: "Edit"), systemImage: "pencil") {

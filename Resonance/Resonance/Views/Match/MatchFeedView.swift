@@ -19,6 +19,7 @@ struct MatchFeedView: View {
     var body: some View {
         MatchFeedContent(viewModel: viewModel, currentUserId: currentUserId)
             .navigationTitle(String(localized: "Matches"))
+            .navigationBarTitleDisplayMode(.inline)
             .task {
                 await viewModel.listenForMatches(userId: currentUserId)
             }

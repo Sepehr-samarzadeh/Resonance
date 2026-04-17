@@ -3,6 +3,7 @@
 
 import SwiftUI
 import FirebaseCore
+import FirebaseAppCheck
 
 // MARK: - ServiceContainer
 
@@ -47,6 +48,14 @@ final class ServiceContainer: Sendable {
         guard !firebaseConfigured else { return }
         firebaseConfigured = true
 
+        // App Check must be set BEFORE FirebaseApp.configure().
+        #if targetEnvironment(simulator)
+        let providerFactory = AppCheckDebugProviderFactory()
+        #else
+        let providerFactory = ResonanceAppCheckProviderFactory()
+        #endif
+        AppCheck.setAppCheckProviderFactory(providerFactory)
+
         if isRunningTests {
             // Provide a minimal configuration so Firestore/Auth/Storage
             // don't crash at init, even though they'll never hit the network.
@@ -69,4 +78,14 @@ final class ServiceContainer: Sendable {
 /// Uses `@Entry` macro for environment values (iOS 18+).
 extension EnvironmentValues {
     @Entry var services: ServiceContainer = ServiceContainer()
+}
+
+// MARK: - App Check Provider Factory
+
+/// Returns an `AppAttestProvider` for each Firebase app.
+/// Used on real devices to attest that requests come from the genuine app.
+final class ResonanceAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> (any AppCheckProvider)? {
+        AppAttestProvider(app: app)
+    }
 }

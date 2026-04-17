@@ -30,6 +30,7 @@ struct HomeView: View {
             }
         }
         .navigationTitle(String(localized: "Home"))
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel == nil {
                 viewModel = HomeViewModel(

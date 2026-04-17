@@ -19,6 +19,7 @@ struct ChatListView: View {
     var body: some View {
         ChatListContent(viewModel: viewModel, currentUserId: currentUserId)
             .navigationTitle(String(localized: "Messages"))
+            .navigationBarTitleDisplayMode(.inline)
             .task(id: currentUserId) {
                 if viewModel.matches.isEmpty {
                     await viewModel.loadMatches(userId: currentUserId)

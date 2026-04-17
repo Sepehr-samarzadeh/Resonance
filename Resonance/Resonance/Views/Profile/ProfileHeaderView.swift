@@ -15,6 +15,7 @@ struct ProfileHeaderView: View {
     var onPhotoSelected: ((Data) -> Void)?
 
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var ambientColor: Color = .musicRed
 
     // MARK: - Body
 
@@ -22,14 +23,10 @@ struct ProfileHeaderView: View {
         VStack(spacing: 0) {
             // Gradient background header
             ZStack(alignment: .bottom) {
-                // Gradient backdrop
-                LinearGradient(
-                    colors: [.musicRed.opacity(0.6), .musicRed.opacity(0.2), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 180)
-                .ignoresSafeArea(edges: .top)
+                // Ambient gradient backdrop tinted by profile photo
+                ambientGradientBackground
+                    .frame(height: 200)
+                    .ignoresSafeArea(edges: .top)
 
                 // Photo + info overlay at bottom of gradient
                 VStack(spacing: 12) {
@@ -60,8 +57,8 @@ struct ProfileHeaderView: View {
                     .fontWeight(.medium)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(.musicRed.opacity(0.15))
-                    .foregroundStyle(.musicRed)
+                    .background(ambientColor.opacity(0.15))
+                    .foregroundStyle(ambientColor)
                     .clipShape(Capsule())
                     .padding(.top, 8)
             }
@@ -73,6 +70,51 @@ struct ProfileHeaderView: View {
                     .foregroundStyle(.tertiary)
                     .padding(.top, 6)
             }
+        }
+        .task(id: user?.photoURL) {
+            await extractAmbientColor()
+        }
+    }
+
+    // MARK: - Ambient Gradient Background
+
+    private var ambientGradientBackground: some View {
+        LinearGradient(
+            stops: [
+                .init(color: ambientColor.opacity(0.6), location: 0),
+                .init(color: ambientColor.opacity(0.3), location: 0.5),
+                .init(color: .clear, location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .animation(.easeInOut(duration: 0.8), value: ambientColor)
+    }
+
+    // MARK: - Color Extraction
+
+    /// Downloads a small version of the profile photo and extracts its dominant color.
+    private func extractAmbientColor() async {
+        guard let photoURLString = user?.photoURL,
+              let url = URL(string: photoURLString) else {
+            return
+        }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            #if canImport(UIKit)
+            if let image = UIImage(data: data),
+               let dominant = image.dominantColor() {
+                let swiftUIColor = Color(dominant)
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.8)) {
+                        ambientColor = swiftUIColor
+                    }
+                }
+            }
+            #endif
+        } catch {
+            // Silently fall back to default .musicRed
         }
     }
 
@@ -107,7 +149,7 @@ struct ProfileHeaderView: View {
                     .frame(width: 140, height: 140)
                     .overlay {
                         ProgressView()
-                            .tint(.musicRed)
+                            .tint(ambientColor)
                     }
             }
         }
@@ -115,11 +157,19 @@ struct ProfileHeaderView: View {
             guard let newItem else { return }
             Task {
                 if let data = try? await newItem.loadTransferable(type: Data.self) {
-                    // Compress to JPEG
+                    // Compress to JPEG and extract color from the new photo
                     #if canImport(UIKit)
                     if let uiImage = UIImage(data: data),
-                       let jpegData = uiImage.jpegData(compressionQuality: 0.8) {
+                       let normalized = uiImage.normalizedOrientation(),
+                       let jpegData = normalized.jpegData(compressionQuality: 0.8) {
                         onPhotoSelected?(jpegData)
+
+                        // Update ambient color immediately from the picked image
+                        if let dominant = normalized.dominantColor() {
+                            withAnimation(.easeInOut(duration: 0.8)) {
+                                ambientColor = Color(dominant)
+                            }
+                        }
                     }
                     #endif
                 }
@@ -150,17 +200,18 @@ struct ProfileHeaderView: View {
                 .strokeBorder(.background, lineWidth: 4)
                 .frame(width: 140, height: 140)
         }
+        .shadow(color: ambientColor.opacity(0.4), radius: 20, y: 8)
         .accessibilityLabel(String(localized: "Profile photo"))
     }
 
     private var placeholderPhoto: some View {
         Circle()
-            .fill(.musicRed.opacity(0.2))
+            .fill(ambientColor.opacity(0.2))
             .frame(width: 140, height: 140)
             .overlay {
                 Image(systemName: "person.fill")
                     .font(.system(size: 50))
-                    .foregroundStyle(.musicRed)
+                    .foregroundStyle(ambientColor)
                     .accessibilityHidden(true)
             }
     }
