@@ -45,7 +45,7 @@ struct MatchFeedView: View {
 // MARK: - MatchFeedContent
 
 /// The scrollable match feed content, extracted to scope observation.
-private struct MatchFeedContent: View {
+struct MatchFeedContent: View {
     let viewModel: MatchViewModel
     let currentUserId: String
 

@@ -106,8 +106,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     case home
     case search
     case discover
-    case matches
-    case messages
+    case connections
     case profile
 
     var id: String { rawValue }
@@ -129,8 +128,7 @@ struct MainTabView: View {
     @State private var showPlayer = false
 
     /// Navigation path for programmatic navigation
-    @State private var matchesNavPath = NavigationPath()
-    @State private var messagesNavPath = NavigationPath()
+    @State private var connectionsNavPath = NavigationPath()
 
     /// Match notification overlay state
     @State private var pendingMatchNotification: Match?
@@ -153,8 +151,7 @@ struct MainTabView: View {
                     appDelegate: appDelegate,
                     selectedTab: $selectedTab,
                     showPlayer: $showPlayer,
-                    matchesNavPath: $matchesNavPath,
-                    messagesNavPath: $messagesNavPath,
+                    connectionsNavPath: $connectionsNavPath,
                     pendingMatchNotification: $pendingMatchNotification,
                     matchNotificationUserName: $matchNotificationUserName,
                     currentUserId: currentUserId
@@ -234,8 +231,7 @@ private struct MainTabContent: View {
     let appDelegate: AppDelegate
     @Binding var selectedTab: AppTab
     @Binding var showPlayer: Bool
-    @Binding var matchesNavPath: NavigationPath
-    @Binding var messagesNavPath: NavigationPath
+    @Binding var connectionsNavPath: NavigationPath
     @Binding var pendingMatchNotification: Match?
     @Binding var matchNotificationUserName: String?
     let currentUserId: String
@@ -245,9 +241,9 @@ private struct MainTabContent: View {
 
     // MARK: - Body
 
-    /// Whether a navigation destination is pushed on the Matches or Messages tab.
+    /// Whether a navigation destination is pushed on the Connections tab.
     private var isInNestedNavigation: Bool {
-        !matchesNavPath.isEmpty || !messagesNavPath.isEmpty
+        !connectionsNavPath.isEmpty
     }
 
     var body: some View {
@@ -329,21 +325,9 @@ private struct MainTabContent: View {
                 }
             }
 
-            Tab(String(localized: "Matches"), systemImage: "person.2.fill", value: AppTab.matches) {
-                NavigationStack(path: $matchesNavPath) {
-                    MatchFeedView(viewModel: matchViewModel, currentUserId: currentUserId)
-                        .navigationDestination(for: Match.self) { match in
-                            MatchDetailView(
-                                match: match,
-                                currentUserId: currentUserId
-                            )
-                        }
-                }
-            }
-
-            Tab(String(localized: "Messages"), systemImage: "bubble.left.and.bubble.right.fill", value: AppTab.messages) {
-                NavigationStack(path: $messagesNavPath) {
-                    ChatListView(viewModel: matchViewModel, currentUserId: currentUserId)
+            Tab(String(localized: "Connections"), systemImage: "person.2.fill", value: AppTab.connections) {
+                NavigationStack(path: $connectionsNavPath) {
+                    ConnectionsView(viewModel: matchViewModel, currentUserId: currentUserId)
                         .navigationDestination(for: Match.self) { match in
                             MatchDetailView(
                                 match: match,
@@ -368,28 +352,27 @@ private struct MainTabContent: View {
                 }
             }
         }
-        .tabViewStyle(.sidebarAdaptable)
     }
 
     // MARK: - Deep Link Handling
     private func handleDeepLink(_ deepLink: DeepLink) {
         switch deepLink {
         case .chat(let matchId):
-            // Switch to Messages tab and navigate to the match detail
-            selectedTab = .messages
-            messagesNavPath = NavigationPath()
+            // Switch to Connections tab and navigate to the match detail
+            selectedTab = .connections
+            connectionsNavPath = NavigationPath()
             Task {
                 do {
                     if let match = try await services.matchService.fetchMatch(id: matchId) {
-                        messagesNavPath.append(match)
+                        connectionsNavPath.append(match)
                     }
                 } catch {
                     Log.match.error("Failed to fetch match for deep link \(matchId): \(error.localizedDescription)")
                 }
             }
         case .matches:
-            selectedTab = .matches
-            matchesNavPath = NavigationPath()
+            selectedTab = .connections
+            connectionsNavPath = NavigationPath()
         }
     }
 
@@ -575,7 +558,7 @@ private struct MatchNotificationOverlay: View {
                     withAnimation(.spring(duration: 0.3)) {
                         pendingMatch = nil
                         matchUserName = nil
-                        selectedTab = .matches
+                        selectedTab = .connections
                     }
                 }
             )

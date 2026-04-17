@@ -47,7 +47,7 @@ struct ChatListView: View {
 // MARK: - ChatListContent
 
 /// The chat list content, extracted to scope observation.
-private struct ChatListContent: View {
+struct ChatListContent: View {
     let viewModel: MatchViewModel
     let currentUserId: String
 
