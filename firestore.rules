@@ -19,6 +19,32 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
+    // Friend requests: sender and receiver can read their own requests.
+    // Only authenticated users can create (as sender). Receiver can accept/decline.
+    // Sender can cancel (delete) pending requests.
+    match /friendRequests/{requestId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == resource.data.senderId
+            || request.auth.uid == resource.data.receiverId);
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.senderId
+        && request.resource.data.status == 'pending';
+      // Receiver can accept/decline a pending request
+      // Sender can re-request a declined request (reset to pending)
+      allow update: if request.auth != null
+        && (
+          (request.auth.uid == resource.data.receiverId
+            && request.resource.data.status in ['accepted', 'declined']
+            && resource.data.status == 'pending')
+          ||
+          (request.auth.uid == resource.data.senderId
+            && request.resource.data.status == 'pending'
+            && resource.data.status == 'declined')
+        );
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.senderId
+        && resource.data.status == 'pending';
+    }
     // Matches: authenticated users can read matches they're part of,
     // and create new matches.
     match /matches/{matchId} {

@@ -17,6 +17,7 @@ final class ServiceContainer: Sendable {
     let chatService: any ChatServiceProtocol
     let notificationService: any NotificationServiceProtocol
     let storageService: any StorageServiceProtocol
+    let discoveryService: any DiscoveryServiceProtocol
 
     /// Returns `true` when the process is hosted by XCTest / Swift Testing.
     nonisolated static var isRunningTests: Bool {
@@ -36,6 +37,7 @@ final class ServiceContainer: Sendable {
         chatService = ChatService()
         notificationService = NotificationService()
         storageService = StorageService()
+        discoveryService = DiscoveryService()
     }
 
     // MARK: - Firebase Configuration

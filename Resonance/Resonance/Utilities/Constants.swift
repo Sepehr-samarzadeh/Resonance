@@ -15,6 +15,7 @@ enum Constants {
         static let messages = "messages"
         static let listeningHistory = "listeningHistory"
         static let sessions = "sessions"
+        static let friendRequests = "friendRequests"
     }
 
     // MARK: - App Storage Keys
@@ -30,6 +31,7 @@ enum Constants {
         static let historicalThreshold: Double = 0.3
         static let maxListeningHistoryCompare = 100
         static let maxTopArtists = 10
+        static let discoveryThreshold: Double = 0.2
     }
 
     // MARK: - UI

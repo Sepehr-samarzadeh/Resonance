@@ -30,4 +30,7 @@ enum Log {
 
     /// General UI and view-layer events.
     static let ui = Logger(subsystem: subsystem, category: "ui")
+
+    /// Discovery and friend request events.
+    static let discovery = Logger(subsystem: subsystem, category: "discovery")
 }

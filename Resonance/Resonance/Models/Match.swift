@@ -50,6 +50,7 @@ extension Match: Codable {
 enum MatchType: String, Codable, Sendable {
     case realtime
     case historical
+    case discovery
 }
 
 // MARK: - TriggerSong

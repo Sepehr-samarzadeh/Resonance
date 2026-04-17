@@ -105,6 +105,7 @@ struct RootView: View {
 enum AppTab: String, CaseIterable, Identifiable {
     case home
     case search
+    case discover
     case matches
     case messages
     case profile
@@ -123,6 +124,7 @@ struct MainTabView: View {
     let appDelegate: AppDelegate
     @State private var playerViewModel: PlayerViewModel?
     @State private var matchViewModel: MatchViewModel?
+    @State private var discoveryViewModel: DiscoveryViewModel?
     @State private var selectedTab: AppTab = .home
     @State private var showPlayer = false
 
@@ -142,11 +144,12 @@ struct MainTabView: View {
 
     var body: some View {
         Group {
-            if let playerViewModel, let matchViewModel, !currentUserId.isEmpty {
+            if let playerViewModel, let matchViewModel, let discoveryViewModel, !currentUserId.isEmpty {
                 MainTabContent(
                     authViewModel: authViewModel,
                     playerViewModel: playerViewModel,
                     matchViewModel: matchViewModel,
+                    discoveryViewModel: discoveryViewModel,
                     appDelegate: appDelegate,
                     selectedTab: $selectedTab,
                     showPlayer: $showPlayer,
@@ -172,6 +175,12 @@ struct MainTabView: View {
             if matchViewModel == nil {
                 matchViewModel = MatchViewModel(
                     matchService: services.matchService,
+                    userService: services.userService
+                )
+            }
+            if discoveryViewModel == nil {
+                discoveryViewModel = DiscoveryViewModel(
+                    discoveryService: services.discoveryService,
                     userService: services.userService
                 )
             }
@@ -221,6 +230,7 @@ private struct MainTabContent: View {
     let authViewModel: AuthViewModel
     let playerViewModel: PlayerViewModel
     let matchViewModel: MatchViewModel
+    let discoveryViewModel: DiscoveryViewModel
     let appDelegate: AppDelegate
     @Binding var selectedTab: AppTab
     @Binding var showPlayer: Bool
@@ -299,6 +309,23 @@ private struct MainTabContent: View {
             Tab(String(localized: "Search"), systemImage: "magnifyingglass", value: AppTab.search, role: .search) {
                 NavigationStack {
                     SearchView(playerViewModel: playerViewModel)
+                }
+            }
+
+            Tab(String(localized: "Discover"), systemImage: "binoculars.fill", value: AppTab.discover) {
+                NavigationStack {
+                    DiscoveryView(
+                        viewModel: discoveryViewModel,
+                        playerViewModel: playerViewModel,
+                        currentUserId: currentUserId
+                    )
+                    .navigationDestination(for: ResonanceUser.self) { user in
+                        UserProfileView(
+                            user: user,
+                            currentUserId: currentUserId,
+                            viewModel: discoveryViewModel
+                        )
+                    }
                 }
             }
 
