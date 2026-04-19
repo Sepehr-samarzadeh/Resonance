@@ -4,6 +4,7 @@
 import Foundation
 import OSLog
 @preconcurrency import FirebaseFirestore
+@preconcurrency import FirebaseFunctions
 
 // MARK: - DiscoveryService
 
@@ -14,6 +15,7 @@ actor DiscoveryService: DiscoveryServiceProtocol {
     // MARK: - Properties
 
     private var db: Firestore { Firestore.firestore() }
+    private var functions: Functions { Functions.functions() }
     private let requestsCollection = "friendRequests"
 
     // MARK: - Discovery Queries
@@ -136,8 +138,18 @@ actor DiscoveryService: DiscoveryServiceProtocol {
             "updatedAt": FieldValue.serverTimestamp()
         ])
 
-        // Create a match so the existing chat system works
-        let match = Match(
+        // Create a match via Cloud Function so the existing chat system works
+        let matchData: [String: Any] = [
+            "userIds": [request.senderId, request.receiverId],
+            "matchType": "discovery",
+        ]
+        let result = try await functions.httpsCallable("createMatch").call(matchData)
+        guard let response = result.data as? [String: Any],
+              let matchId = response["matchId"] as? String else {
+            throw DiscoveryError.requestNotFound
+        }
+
+        var createdMatch = Match(
             userIds: [request.senderId, request.receiverId],
             matchType: .discovery,
             triggerSong: nil,
@@ -145,11 +157,7 @@ actor DiscoveryService: DiscoveryServiceProtocol {
             similarityScore: nil,
             createdAt: Date()
         )
-        let matchDict = try encodeToDict(match)
-        let matchRef = try await db.collection("matches").addDocument(data: matchDict)
-
-        var createdMatch = match
-        createdMatch.id = matchRef.documentID
+        createdMatch.id = matchId
         return createdMatch
     }
 

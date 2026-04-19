@@ -1,37 +1,102 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users: authenticated users can read any profile,
-    // but only write their own document.
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Imported playlists subcollection: same rules as the parent user document.
+    // ─── Helper Functions ──────────────────────────────────────────
+
+    /// Returns true if the caller is authenticated.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /// Returns true if the caller owns the document at the given userId path.
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ─── Users ─────────────────────────────────────────────────────
+
+    match /users/{userId} {
+
+      // Any authenticated user can read public profile data.
+      // Note: deviceToken has been moved to /users/{userId}/private/tokens
+      // so it is no longer exposed here.
+      allow read: if isSignedIn();
+
+      // Only the owner can create their own document.
+      allow create: if isOwner(userId)
+        // Required fields must be strings
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 100
+        && request.resource.data.email is string
+        && request.resource.data.authProvider is string
+        && request.resource.data.authProvider in ["apple", "google"];
+
+      // Only the owner can update their own document.
+      allow update: if isOwner(userId)
+        // Immutable fields cannot be changed once set
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.authProvider == resource.data.authProvider
+        // Field size limits
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 100
+        && (!("bio" in request.resource.data) || (
+          request.resource.data.bio is string
+          && request.resource.data.bio.size() <= 500
+        ))
+        && (!("favoriteGenres" in request.resource.data) || (
+          request.resource.data.favoriteGenres is list
+          && request.resource.data.favoriteGenres.size() <= 20
+        ))
+        && (!("topArtists" in request.resource.data) || (
+          request.resource.data.topArtists is list
+          && request.resource.data.topArtists.size() <= 50
+        ));
+
+      // Owner can delete their own account.
+      allow delete: if isOwner(userId);
+
+      // ─── Private Subcollection (device tokens, sensitive data) ──
+      // Only the owner can read/write their private data.
+      // Cloud Functions (admin SDK) bypass rules and can always read.
+      match /private/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // ─── Imported Playlists ─────────────────────────────────────
       match /importedPlaylists/{playlistId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
       }
     }
-    // Listening history: authenticated users can read any history (for matching),
-    // but only write their own sessions.
+
+    // ─── Listening History ─────────────────────────────────────────
+
     match /listeningHistory/{userId}/sessions/{sessionId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
-    // Friend requests: sender and receiver can read their own requests.
-    // Only authenticated users can create (as sender). Receiver can accept/decline.
-    // Sender can cancel (delete) pending requests.
+
+    // ─── Friend Requests ───────────────────────────────────────────
+
     match /friendRequests/{requestId} {
-      allow read: if request.auth != null
+      allow read: if isSignedIn()
         && (request.auth.uid == resource.data.senderId
             || request.auth.uid == resource.data.receiverId);
-      allow create: if request.auth != null
+
+      allow create: if isSignedIn()
         && request.auth.uid == request.resource.data.senderId
-        && request.resource.data.status == 'pending';
-      // Receiver can accept/decline a pending request
-      // Sender can re-request a declined request (reset to pending)
-      allow update: if request.auth != null
+        && request.resource.data.status == 'pending'
+        && request.resource.data.senderId is string
+        && request.resource.data.receiverId is string
+        && request.resource.data.senderId != request.resource.data.receiverId;
+
+      // Receiver can accept/decline pending requests.
+      // Sender can re-request declined requests.
+      // Immutable fields (senderId, receiverId) cannot be changed.
+      allow update: if isSignedIn()
+        && request.resource.data.senderId == resource.data.senderId
+        && request.resource.data.receiverId == resource.data.receiverId
         && (
           (request.auth.uid == resource.data.receiverId
             && request.resource.data.status in ['accepted', 'declined']
@@ -41,23 +106,65 @@ service cloud.firestore {
             && request.resource.data.status == 'pending'
             && resource.data.status == 'declined')
         );
-      allow delete: if request.auth != null
+
+      allow delete: if isSignedIn()
         && request.auth.uid == resource.data.senderId
         && resource.data.status == 'pending';
     }
-    // Matches: authenticated users can read matches they're part of,
-    // and create new matches.
+
+    // ─── Matches ───────────────────────────────────────────────────
+    // Match documents are created ONLY by Cloud Functions (admin SDK).
+    // Clients cannot create matches — they call the `createMatch` callable function.
+
     match /matches/{matchId} {
-      allow read: if request.auth != null
+      allow read: if isSignedIn()
         && request.auth.uid in resource.data.userIds;
-      allow create: if request.auth != null
-        && request.auth.uid in request.resource.data.userIds;
-      allow update, delete: if request.auth != null
+
+      // Client cannot create matches. Only the server (admin SDK) can.
+      allow create: if false;
+
+      // Participants can update non-critical fields (but not userIds, matchType, createdAt).
+      allow update: if isSignedIn()
+        && request.auth.uid in resource.data.userIds
+        && request.resource.data.userIds == resource.data.userIds
+        && request.resource.data.matchType == resource.data.matchType
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Only participants can delete a match.
+      allow delete: if isSignedIn()
         && request.auth.uid in resource.data.userIds;
-      // Messages subcollection: participants can read/write/delete messages.
+
+      // ─── Messages Subcollection ─────────────────────────────────
       match /messages/{messageId} {
-        allow read, write: if request.auth != null
+
+        // Participants can read all messages in the match.
+        allow read: if isSignedIn()
           && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds;
+
+        // Only participants can create messages, and senderId must be the caller.
+        // Text must be a non-empty string under 2000 characters.
+        // Rate limit: createdAt must be a number (epoch) and cannot be in the future.
+        allow create: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt is number;
+
+        // Only the recipient can update a message (to mark as read).
+        // senderId and text are immutable — cannot be changed.
+        allow update: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds
+          && request.resource.data.senderId == resource.data.senderId
+          && request.resource.data.text == resource.data.text
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.auth.uid != resource.data.senderId;
+
+        // Only the sender can delete their own messages.
+        allow delete: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds
+          && request.auth.uid == resource.data.senderId;
       }
     }
   }

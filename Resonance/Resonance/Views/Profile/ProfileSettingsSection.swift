@@ -3,7 +3,7 @@
 
 import SwiftUI
 #if DEBUG
-@preconcurrency import FirebaseFirestore
+@preconcurrency import FirebaseFunctions
 #endif
 
 // MARK: - ProfileSettingsSection
@@ -232,45 +232,33 @@ struct ProfileSettingsSection: View {
         ("1544494996", "Levitating", "Dua Lipa"),
     ]
 
-    /// Creates a fake match document and initial message in Firestore
-    /// so the Matches and Messages tabs have data to display.
-    /// Note: Firestore rules prevent creating a user document for another
-    /// UID, so the "other user" will show as "Resonance User" in the UI.
+    /// Creates a test match via the `seedTestMatch` Cloud Function.
+    /// The Cloud Function uses admin SDK to create a test user and match,
+    /// bypassing security rules that would prevent client-side test data creation.
     private func seedTestMatch() async {
         isSeedingMatch = true
         seedResult = nil
 
-        let db = Firestore.firestore()
+        guard !currentUserId.isEmpty else {
+            seedResult = String(localized: "Failed: No signed-in user ID")
+            isSeedingMatch = false
+            return
+        }
+
+        let functions = Functions.functions()
         let testUserId = "debug-test-user-\(UUID().uuidString.prefix(8))"
-        let now = Date()
         let song = Self.seedSongs.randomElement()!
 
-        // 1. Create a match document with both user IDs
-        let match: [String: Any] = [
-            "userIds": [currentUserId, testUserId],
-            "matchType": "realtime",
-            "triggerSong": [
-                "id": song.id,
-                "name": song.name,
-                "artistName": song.artist
-            ],
-            "createdAt": now.timeIntervalSince1970
-        ]
-
-        // 2. Create an initial message so the chat isn't empty
-        let message: [String: Any] = [
-            "senderId": testUserId,
-            "text": String(localized: "Hey! We both love \(song.name)!"),
-            "isRead": false,
-            "createdAt": now.timeIntervalSince1970
-        ]
-
         do {
-            // Write the match
-            let matchRef = try await db.collection("matches").addDocument(data: match)
-
-            // Write the initial message under the match
-            try await matchRef.collection("messages").addDocument(data: message)
+            let data: [String: Any] = [
+                "testUserId": testUserId,
+                "triggerSong": [
+                    "id": song.id,
+                    "name": song.name,
+                    "artistName": song.artist
+                ]
+            ]
+            _ = try await functions.httpsCallable("seedTestMatch").call(data)
 
             seedResult = String(localized: "Matched on \(song.name) by \(song.artist). Check Matches tab!")
         } catch {

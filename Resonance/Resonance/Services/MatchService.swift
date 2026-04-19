@@ -4,6 +4,7 @@
 import Foundation
 import OSLog
 @preconcurrency import FirebaseFirestore
+@preconcurrency import FirebaseFunctions
 
 // MARK: - MatchService
 
@@ -15,6 +16,12 @@ actor MatchService: MatchServiceProtocol {
     private var db: Firestore {
         Firestore.firestore()
     }
+
+    /// Cloud Functions instance for calling server-side match creation.
+    private var functions: Functions {
+        Functions.functions()
+    }
+
     private let matchesCollection = "matches"
 
     // MARK: - Real-Time Matching
@@ -72,16 +79,44 @@ actor MatchService: MatchServiceProtocol {
         }.first
     }
 
-    // MARK: - Create Match
+    // MARK: - Create Match (via Cloud Function)
 
-    /// Creates a new match document in Firestore.
+    /// Creates a new match document via a server-side Cloud Function.
+    /// This ensures proper validation, deduplication, and prevents
+    /// unauthorized match creation from malicious clients.
     /// - Parameter match: The `Match` to persist.
     /// - Returns: The document ID of the created match.
     @discardableResult
     func createMatch(_ match: Match) async throws -> String {
-        let dict = try encodeToDict(match)
-        let docRef = try await db.collection(matchesCollection).addDocument(data: dict)
-        return docRef.documentID
+        var data: [String: Any] = [
+            "userIds": match.userIds,
+            "matchType": match.matchType.rawValue,
+        ]
+        if let triggerSong = match.triggerSong {
+            data["triggerSong"] = [
+                "id": triggerSong.id,
+                "name": triggerSong.name,
+                "artistName": triggerSong.artistName,
+            ]
+        }
+        if let triggerArtist = match.triggerArtist {
+            data["triggerArtist"] = [
+                "id": triggerArtist.id,
+                "name": triggerArtist.name,
+            ]
+        }
+        if let score = match.similarityScore {
+            data["similarityScore"] = score
+        }
+
+        let result = try await functions.httpsCallable("createMatch").call(data)
+        guard let response = result.data as? [String: Any],
+              let matchId = response["matchId"] as? String else {
+            throw NSError(domain: "MatchService", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Invalid response from createMatch function"
+            ])
+        }
+        return matchId
     }
 
     /// Creates a real-time match between two users triggered by a song.

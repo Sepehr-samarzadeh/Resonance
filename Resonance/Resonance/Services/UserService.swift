@@ -182,12 +182,14 @@ actor UserService: UserServiceProtocol {
 
     // MARK: - Device Token
 
-    /// Stores the APNs device token for push notifications.
+    /// Stores the FCM registration token in the user's private subcollection.
     func updateDeviceToken(userId: String, token: String) async throws {
-        try await db.collection(usersCollection).document(userId).updateData([
-            "deviceToken": token,
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
+        try await db.collection(usersCollection).document(userId)
+            .collection("private").document("tokens")
+            .setData([
+                "deviceToken": token,
+                "updatedAt": FieldValue.serverTimestamp()
+            ], merge: true)
     }
 
     // MARK: - Listening History

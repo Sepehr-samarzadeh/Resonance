@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AE22FF352F94D6F30022227A /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = AE22FF342F94D6F30022227A /* FirebaseMessaging */; };
+		AE22FF372F94E4F90022227A /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = AE22FF362F94E4F90022227A /* FirebaseFunctions */; };
 		AE6E65552F89A264003D6406 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E65542F89A264003D6406 /* GoogleSignIn */; };
 		AE6E65572F89A264003D6406 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E65562F89A264003D6406 /* GoogleSignInSwift */; };
 		AE6E66242F89B752003D6406 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AE6E66232F89B752003D6406 /* FirebaseCore */; };
@@ -62,8 +64,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AE22FF352F94D6F30022227A /* FirebaseMessaging in Frameworks */,
 				AE6E65552F89A264003D6406 /* GoogleSignIn in Frameworks */,
 				AE6E66242F89B752003D6406 /* FirebaseCore in Frameworks */,
+				AE22FF372F94E4F90022227A /* FirebaseFunctions in Frameworks */,
 				AE6E65572F89A264003D6406 /* GoogleSignInSwift in Frameworks */,
 				AE6E66282F89B788003D6406 /* FirebaseFirestore in Frameworks */,
 				AE7E3FB02F92005700736FFD /* FirebaseAppCheck in Frameworks */,
@@ -135,6 +139,8 @@
 				AE6E66272F89B788003D6406 /* FirebaseFirestore */,
 				AE6E66292F89B7A0003D6406 /* FirebaseStorage */,
 				AE7E3FAF2F92005700736FFD /* FirebaseAppCheck */,
+				AE22FF342F94D6F30022227A /* FirebaseMessaging */,
+				AE22FF362F94E4F90022227A /* FirebaseFunctions */,
 			);
 			productName = Resonance;
 			productReference = AE7B86A92F8593FA00487A85 /* Resonance.app */;
@@ -536,6 +542,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		AE22FF342F94D6F30022227A /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		AE22FF362F94E4F90022227A /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AE6E65512F899BDF003D6406 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
 		AE6E65542F89A264003D6406 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AE6E65532F89A264003D6406 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
