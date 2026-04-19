@@ -4,6 +4,7 @@
 import Foundation
 import FirebaseCore
 import FirebaseAuth
+import FirebaseMessaging
 import GoogleSignIn
 import UserNotifications
 import OSLog
@@ -22,7 +23,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
     /// Observed by `MainTabView` to drive navigation.
     var pendingDeepLink: DeepLink?
 
-    /// Stores the latest APNs device token string for post-sign-in registration.
+    /// Stores the latest FCM registration token for post-sign-in registration.
     var latestDeviceToken: String?
 
     // MARK: - App Launch
@@ -34,6 +35,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         // Firebase is configured by `ServiceContainer.init()`, which runs
         // before this callback. Only set up notifications here.
         UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
         registerForPushNotifications(application)
         return true
     }
@@ -54,21 +56,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-        Log.notification.info("APNs device token received")
-
-        // Store the token for post-sign-in registration
-        latestDeviceToken = tokenString
-
-        Task { @MainActor in
-            if let userId = Auth.auth().currentUser?.uid {
-                do {
-                    try await notificationService?.registerDeviceToken(tokenString, forUserId: userId)
-                } catch {
-                    Log.notification.error("Failed to register device token: \(error.localizedDescription)")
-                }
-            }
-        }
+        // Pass the raw APNs token to Firebase Messaging so it can obtain an FCM token.
+        Messaging.messaging().apnsToken = deviceToken
+        Log.notification.info("APNs device token forwarded to Firebase Messaging")
     }
 
     func application(
@@ -91,6 +81,33 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
                 Log.notification.error("Notification authorization error: \(error.localizedDescription)")
             }
         }
+    }
+
+    /// Registers the FCM token with Firestore for the currently signed-in user.
+    fileprivate func registerFCMToken(_ fcmToken: String) {
+        latestDeviceToken = fcmToken
+
+        Task { @MainActor in
+            if let userId = Auth.auth().currentUser?.uid {
+                do {
+                    try await notificationService?.registerDeviceToken(fcmToken, forUserId: userId)
+                } catch {
+                    Log.notification.error("Failed to register FCM token: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+}
+
+// MARK: - MessagingDelegate
+
+extension AppDelegate: MessagingDelegate {
+
+    /// Called when Firebase Messaging receives a new or refreshed FCM registration token.
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken else { return }
+        Log.notification.info("FCM registration token received")
+        registerFCMToken(fcmToken)
     }
 }
 

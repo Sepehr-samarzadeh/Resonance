@@ -67,3 +67,6 @@ playground.xcworkspace
 ### Secrets / Firebase
 GoogleService-Info.plist
 GoogleService-Info-*.plist
+
+### Node / Cloud Functions
+node_modules/

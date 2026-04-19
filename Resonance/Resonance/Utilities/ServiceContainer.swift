@@ -51,7 +51,9 @@ final class ServiceContainer: Sendable {
         firebaseConfigured = true
 
         // App Check must be set BEFORE FirebaseApp.configure().
-        #if targetEnvironment(simulator)
+        // Use the debug provider for all debug builds (simulator + device).
+        // App Attest is only used in release builds distributed via the App Store.
+        #if DEBUG
         let providerFactory = AppCheckDebugProviderFactory()
         #else
         let providerFactory = ResonanceAppCheckProviderFactory()

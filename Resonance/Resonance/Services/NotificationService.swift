@@ -18,31 +18,27 @@ final class NotificationService: NotificationServiceProtocol, Sendable {
 
     // MARK: - Device Token Registration
 
-    /// Stores the APNs device token for the given user in Firestore.
+    /// Stores the FCM registration token in the user's private subcollection.
+    /// This keeps the token hidden from other users — only the owner and
+    /// Cloud Functions (admin SDK) can access it.
     /// - Parameters:
-    ///   - token: The device token as a hex string.
+    ///   - token: The FCM registration token string.
     ///   - userId: The user's Firestore document ID.
     func registerDeviceToken(_ token: String, forUserId userId: String) async throws {
-        try await db.collection("users").document(userId).updateData([
-            "deviceToken": token,
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
-    }
-
-    /// Converts raw APNs device token data to a hex string.
-    /// - Parameter deviceToken: The raw token data from `didRegisterForRemoteNotificationsWithDeviceToken`.
-    /// - Returns: A hex-encoded string representation of the token.
-    nonisolated func tokenString(from deviceToken: Data) -> String {
-        deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+        try await db.collection("users").document(userId)
+            .collection("private").document("tokens")
+            .setData([
+                "deviceToken": token,
+                "updatedAt": FieldValue.serverTimestamp()
+            ], merge: true)
     }
 
     // MARK: - Remove Device Token
 
     /// Removes the device token when the user signs out.
     func removeDeviceToken(forUserId userId: String) async throws {
-        try await db.collection("users").document(userId).updateData([
-            "deviceToken": FieldValue.delete(),
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
+        try await db.collection("users").document(userId)
+            .collection("private").document("tokens")
+            .delete()
     }
 }
