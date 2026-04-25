@@ -294,6 +294,32 @@ actor UserService: UserServiceProtocol {
         logger.info("Deleted all data for user \(userId)")
     }
 
+    /// Deletes only the user document from Firestore.
+    /// The `onUserDeleted` Cloud Function handles cascade deletion of
+    /// matches, messages, friendRequests, listeningHistory, reports, etc.
+    func deleteUserDocument(userId: String) async throws {
+        guard !userId.isEmpty else {
+            logger.error("deleteUserDocument called with empty userId")
+            return
+        }
+        try await db.collection(usersCollection).document(userId).delete()
+        logger.info("Deleted user document for \(userId)")
+    }
+
+    // MARK: - Private Data
+
+    /// Fetches the user's private data from `users/{userId}/private/profile`.
+    func fetchPrivateData(userId: String) async throws -> PrivateUserData? {
+        guard !userId.isEmpty else { return nil }
+        let doc = try await db.collection(usersCollection)
+            .document(userId)
+            .collection("private")
+            .document("profile")
+            .getDocument()
+        guard doc.exists, let dict = doc.data() else { return nil }
+        return decodeFromDictOptional(PrivateUserData.self, from: dict)
+    }
+
     // MARK: - Imported Playlists
 
     /// Saves an imported playlist to the user's `importedPlaylists` subcollection.

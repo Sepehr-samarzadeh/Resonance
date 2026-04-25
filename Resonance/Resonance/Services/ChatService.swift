@@ -21,11 +21,16 @@ actor ChatService: ChatServiceProtocol {
     // MARK: - Send Message
 
     /// Sends a text message in a match conversation.
+    /// Checks for prohibited content before writing to Firestore.
     /// - Parameters:
     ///   - matchId: The match document ID.
     ///   - senderId: The sender's user ID.
     ///   - text: The message text.
     func sendMessage(matchId: String, senderId: String, text: String) async throws {
+        if ProfanityFilter.containsProhibitedContent(text) {
+            throw ChatServiceError.containsProhibitedContent
+        }
+
         let message = Message(
             senderId: senderId,
             text: text,
@@ -150,5 +155,18 @@ actor ChatService: ChatServiceProtocol {
         var dict = doc.data()
         dict["id"] = doc.documentID
         return decodeFromDictOptional(Message.self, from: dict)
+    }
+}
+
+// MARK: - ChatServiceError
+
+enum ChatServiceError: LocalizedError, Sendable {
+    case containsProhibitedContent
+
+    var errorDescription: String? {
+        switch self {
+        case .containsProhibitedContent:
+            String(localized: "Your message couldn't be sent because it contains prohibited content.")
+        }
     }
 }

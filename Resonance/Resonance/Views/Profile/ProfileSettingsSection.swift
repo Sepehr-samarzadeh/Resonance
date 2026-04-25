@@ -88,6 +88,20 @@ struct ProfileSettingsSection: View {
                         detail: ""
                     )
                 }
+
+                Divider()
+                    .padding(.leading, 52)
+
+                // Blocked Users
+                NavigationLink {
+                    BlockedUsersView(currentUserId: currentUserId)
+                } label: {
+                    settingsRow(
+                        icon: "hand.raised.fill",
+                        title: String(localized: "Blocked Users"),
+                        detail: ""
+                    )
+                }
             }
             .padding(12)
             .background(.ultraThinMaterial)

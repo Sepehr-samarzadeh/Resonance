@@ -18,6 +18,7 @@ final class ServiceContainer: Sendable {
     let notificationService: any NotificationServiceProtocol
     let storageService: any StorageServiceProtocol
     let discoveryService: any DiscoveryServiceProtocol
+    let moderationService: any ModerationServiceProtocol
 
     /// Returns `true` when the process is hosted by XCTest / Swift Testing.
     nonisolated static var isRunningTests: Bool {
@@ -38,6 +39,7 @@ final class ServiceContainer: Sendable {
         notificationService = NotificationService()
         storageService = StorageService()
         discoveryService = DiscoveryService()
+        moderationService = ModerationService()
     }
 
     // MARK: - Firebase Configuration

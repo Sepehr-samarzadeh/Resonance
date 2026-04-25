@@ -91,6 +91,7 @@ actor AuthService: AuthServiceProtocol {
             favoriteGenres: [],
             topArtists: [],
             currentlyListening: nil,
+            blockedUserIds: [],
             deviceToken: nil,
             createdAt: Date(),
             updatedAt: Date()
@@ -131,6 +132,7 @@ actor AuthService: AuthServiceProtocol {
             favoriteGenres: [],
             topArtists: [],
             currentlyListening: nil,
+            blockedUserIds: [],
             deviceToken: nil,
             createdAt: Date(),
             updatedAt: Date()
@@ -177,12 +179,44 @@ actor AuthService: AuthServiceProtocol {
     // MARK: - Delete Account
 
     /// Deletes the currently authenticated user's Firebase Auth account.
-    /// Throws if the user is not signed in or re-authentication is required.
+    /// Automatically re-authenticates if the session is stale.
+    /// After auth deletion, the caller should delete the user's Firestore document
+    /// to trigger the `onUserDeleted` Cloud Function cascade.
     func deleteAccount() async throws {
         guard let user = Auth.auth().currentUser else {
             throw AuthError.unknown(String(localized: "No user is currently signed in."))
         }
-        try await user.delete()
+
+        do {
+            try await user.delete()
+        } catch let error as NSError where error.code == AuthErrorCode.requiresRecentLogin.rawValue {
+            // Re-authenticate and retry
+            try await reauthenticate(user: user)
+            try await user.delete()
+        }
+    }
+
+    /// Re-authenticates the user using their original sign-in provider.
+    /// Required by Firebase before destructive operations on stale sessions.
+    private func reauthenticate(user: FirebaseAuth.User) async throws {
+        let providerIds = user.providerData.map(\.providerID)
+
+        if providerIds.contains("apple.com") {
+            let (nonce, hashedNonce) = prepareAppleSignIn()
+            let appleProvider = OAuthProvider(providerID: "apple.com")
+            // Request a fresh Apple credential
+            let credential = try await appleProvider.credential(with: nil)
+            try await user.reauthenticate(with: credential)
+        } else if providerIds.contains("google.com") {
+            let tokens = try await presentGoogleSignIn()
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: tokens.idToken,
+                accessToken: tokens.accessToken
+            )
+            try await user.reauthenticate(with: credential)
+        } else {
+            throw AuthError.unknown(String(localized: "Unable to re-authenticate. Please sign out and sign in again, then retry."))
+        }
     }
 
     // MARK: - Auth State Listener
@@ -216,6 +250,14 @@ actor AuthService: AuthServiceProtocol {
         } else {
             try await docRef.setData(dict)
         }
+
+        // Write sensitive fields to the private subcollection
+        let privateData = PrivateUserData(
+            email: user.email,
+            blockedUserIds: user.blockedUserIds
+        )
+        let privateDict = try encodeToDict(privateData)
+        try await docRef.collection("private").document("profile").setData(privateDict, merge: true)
     }
 
     private func buildDisplayName(from fullName: PersonNameComponents?) -> String? {

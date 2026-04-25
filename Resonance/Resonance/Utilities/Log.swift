@@ -33,4 +33,7 @@ enum Log {
 
     /// Discovery and friend request events.
     static let discovery = Logger(subsystem: subsystem, category: "discovery")
+
+    /// Moderation, reporting, and blocking events.
+    static let moderation = Logger(subsystem: subsystem, category: "moderation")
 }

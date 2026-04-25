@@ -152,7 +152,9 @@ final class AuthViewModel {
 
     // MARK: - Delete Account
 
-    /// Deletes the user's account: removes all Firestore data, then deletes the Firebase Auth account.
+    /// Deletes the user's account: first deletes the Firebase Auth account,
+    /// then deletes the Firestore user document (which triggers the `onUserDeleted`
+    /// Cloud Function to cascade-delete matches, messages, requests, history, etc.).
     func deleteAccount() async {
         guard let userId = currentUser?.id else {
             errorMessage = String(localized: "No user signed in.")
@@ -163,11 +165,13 @@ final class AuthViewModel {
         errorMessage = nil
 
         do {
-            // 1. Delete all Firestore data (user doc, subcollections)
-            try await userService.deleteAllUserData(userId: userId)
-
-            // 2. Delete the Firebase Auth account
+            // 1. Delete the Firebase Auth account first (may prompt re-auth)
             try await authService.deleteAccount()
+
+            // 2. Delete the Firestore user document — this triggers the
+            //    onUserDeleted Cloud Function which handles cascading deletes
+            //    (matches, messages, friendRequests, listeningHistory, reports, etc.)
+            try await userService.deleteUserDocument(userId: userId)
 
             // 3. Clear local state
             currentUser = nil
@@ -201,7 +205,15 @@ final class AuthViewModel {
 
     private func loadUserProfile(userId: String) async {
         do {
-            currentUser = try await userService.fetchUser(userId: userId)
+            var user = try await userService.fetchUser(userId: userId)
+
+            // Merge private data (email, blockedUserIds) from the private subcollection
+            if let privateData = try await userService.fetchPrivateData(userId: userId) {
+                user?.email = privateData.email
+                user?.blockedUserIds = privateData.blockedUserIds
+            }
+
+            currentUser = user
         } catch let error as DecodingError {
             Log.auth.error("Failed to decode user profile: \(String(describing: error))")
         } catch {

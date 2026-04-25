@@ -21,13 +21,14 @@ actor DiscoveryService: DiscoveryServiceProtocol {
     // MARK: - Discovery Queries
 
     /// Fetches full user objects currently listening to the same song.
-    func fetchUsersListeningToSong(songId: String, currentUserId: String) async throws -> [ResonanceUser] {
+    func fetchUsersListeningToSong(songId: String, currentUserId: String, blockedUserIds: [String] = []) async throws -> [ResonanceUser] {
+        let blocked = Set(blockedUserIds)
         let snapshot = try await db.collection("users")
             .whereField("currentlyListening.songId", isEqualTo: songId)
             .getDocuments()
 
         return snapshot.documents.compactMap { doc -> ResonanceUser? in
-            guard doc.documentID != currentUserId else { return nil }
+            guard doc.documentID != currentUserId, !blocked.contains(doc.documentID) else { return nil }
             var dict = doc.data()
             dict["id"] = doc.documentID
             return decodeFromDictOptional(ResonanceUser.self, from: dict)
@@ -35,13 +36,14 @@ actor DiscoveryService: DiscoveryServiceProtocol {
     }
 
     /// Fetches full user objects currently listening to the same artist.
-    func fetchUsersListeningToArtist(artistName: String, currentUserId: String) async throws -> [ResonanceUser] {
+    func fetchUsersListeningToArtist(artistName: String, currentUserId: String, blockedUserIds: [String] = []) async throws -> [ResonanceUser] {
+        let blocked = Set(blockedUserIds)
         let snapshot = try await db.collection("users")
             .whereField("currentlyListening.artistName", isEqualTo: artistName)
             .getDocuments()
 
         return snapshot.documents.compactMap { doc -> ResonanceUser? in
-            guard doc.documentID != currentUserId else { return nil }
+            guard doc.documentID != currentUserId, !blocked.contains(doc.documentID) else { return nil }
             var dict = doc.data()
             dict["id"] = doc.documentID
             return decodeFromDictOptional(ResonanceUser.self, from: dict)
@@ -49,7 +51,8 @@ actor DiscoveryService: DiscoveryServiceProtocol {
     }
 
     /// Fetches users with similar music taste, returning (user, score) pairs.
-    func fetchSimilarUsers(userId: String, limit: Int) async throws -> [(user: ResonanceUser, score: Double)] {
+    func fetchSimilarUsers(userId: String, limit: Int, blockedUserIds: [String] = []) async throws -> [(user: ResonanceUser, score: Double)] {
+        let blocked = Set(blockedUserIds)
         // Fetch recent active users to compare against
         let snapshot = try await db.collection("users")
             .order(by: "updatedAt", descending: true)
@@ -57,7 +60,7 @@ actor DiscoveryService: DiscoveryServiceProtocol {
             .getDocuments()
 
         let candidates = snapshot.documents.compactMap { doc -> ResonanceUser? in
-            guard doc.documentID != userId else { return nil }
+            guard doc.documentID != userId, !blocked.contains(doc.documentID) else { return nil }
             var dict = doc.data()
             dict["id"] = doc.documentID
             return decodeFromDictOptional(ResonanceUser.self, from: dict)

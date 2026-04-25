@@ -20,6 +20,7 @@ struct ResonanceUser: Identifiable, Sendable, Hashable {
     var topArtists: [TopArtist]
     var currentlyListening: CurrentlyListening?
     var tasteProfile: TasteProfile?
+    var blockedUserIds: [String]
     var deviceToken: String?
     var createdAt: Date
     var updatedAt: Date
@@ -40,7 +41,7 @@ extension ResonanceUser: Codable {
         case id, displayName, email, photoURL, bio, pronouns, mood
         case favoriteSong, socialLinks, authProvider
         case favoriteGenres, topArtists, currentlyListening, tasteProfile
-        case deviceToken, createdAt, updatedAt
+        case blockedUserIds, deviceToken, createdAt, updatedAt
     }
 
     nonisolated init(from decoder: any Decoder) throws {
@@ -59,6 +60,7 @@ extension ResonanceUser: Codable {
         topArtists = try container.decodeIfPresent([TopArtist].self, forKey: .topArtists) ?? []
         currentlyListening = try container.decodeIfPresent(CurrentlyListening.self, forKey: .currentlyListening)
         tasteProfile = try container.decodeIfPresent(TasteProfile.self, forKey: .tasteProfile)
+        blockedUserIds = try container.decodeIfPresent([String].self, forKey: .blockedUserIds) ?? []
         deviceToken = try container.decodeIfPresent(String.self, forKey: .deviceToken)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
@@ -68,7 +70,10 @@ extension ResonanceUser: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(id, forKey: .id)
         try container.encode(displayName, forKey: .displayName)
-        try container.encode(email, forKey: .email)
+        // email, blockedUserIds, and deviceToken are intentionally NOT encoded
+        // here. They are stored in the private subcollection
+        // (users/{userId}/private/profile) to prevent other authenticated
+        // users from reading them via the public user document.
         try container.encodeIfPresent(photoURL, forKey: .photoURL)
         try container.encodeIfPresent(bio, forKey: .bio)
         try container.encodeIfPresent(pronouns, forKey: .pronouns)
@@ -80,7 +85,6 @@ extension ResonanceUser: Codable {
         try container.encode(topArtists, forKey: .topArtists)
         try container.encodeIfPresent(currentlyListening, forKey: .currentlyListening)
         try container.encodeIfPresent(tasteProfile, forKey: .tasteProfile)
-        try container.encodeIfPresent(deviceToken, forKey: .deviceToken)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }

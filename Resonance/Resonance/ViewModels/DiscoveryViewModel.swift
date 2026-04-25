@@ -36,6 +36,9 @@ final class DiscoveryViewModel {
     /// Track IDs of users we've sent requests to (for optimistic UI).
     var sentRequestUserIds: Set<String> = []
 
+    /// Blocked user IDs, loaded from the current user's profile.
+    var blockedUserIds: [String] = []
+
     private let discoveryService: any DiscoveryServiceProtocol
     private let userService: any UserServiceProtocol
     private var requestListenerTask: Task<Void, Never>?
@@ -60,7 +63,8 @@ final class DiscoveryViewModel {
             if let songId {
                 users = try await discoveryService.fetchUsersListeningToSong(
                     songId: songId,
-                    currentUserId: currentUserId
+                    currentUserId: currentUserId,
+                    blockedUserIds: blockedUserIds
                 )
             }
 
@@ -68,7 +72,8 @@ final class DiscoveryViewModel {
             if users.isEmpty, let artistName {
                 users = try await discoveryService.fetchUsersListeningToArtist(
                     artistName: artistName,
-                    currentUserId: currentUserId
+                    currentUserId: currentUserId,
+                    blockedUserIds: blockedUserIds
                 )
             }
 
@@ -87,7 +92,7 @@ final class DiscoveryViewModel {
         defer { isLoadingSimilar = false }
 
         do {
-            similarUsers = try await discoveryService.fetchSimilarUsers(userId: userId, limit: 20)
+            similarUsers = try await discoveryService.fetchSimilarUsers(userId: userId, limit: 20, blockedUserIds: blockedUserIds)
         } catch {
             Log.discovery.error("Failed to load similar users: \(error.localizedDescription)")
             similarUsers = []
@@ -164,6 +169,11 @@ final class DiscoveryViewModel {
 
             incomingRequests = try await incomingTask
             outgoingRequests = try await outgoingTask
+
+            // Filter out requests from/to blocked users
+            let blocked = Set(blockedUserIds)
+            incomingRequests = incomingRequests.filter { !blocked.contains($0.senderId) }
+            outgoingRequests = outgoingRequests.filter { !blocked.contains($0.receiverId) }
 
             // Track outgoing request receiver IDs for UI state
             sentRequestUserIds = Set(outgoingRequests.map(\.receiverId))

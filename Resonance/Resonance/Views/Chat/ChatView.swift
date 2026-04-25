@@ -11,12 +11,21 @@ struct ChatView: View {
     // MARK: - Properties
 
     @Environment(\.services) private var services
+    @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ChatViewModel?
     @State private var otherUser: ResonanceUser?
     @State private var didLoadUser = false
+    @State private var showReportSheet = false
+    @State private var showBlockConfirmation = false
+    @State private var reportMessageId: String?
+    @State private var showMessageReportSheet = false
 
     let match: Match
     let currentUserId: String
+
+    private var otherUserId: String? {
+        match.userIds.first { $0 != currentUserId }
+    }
 
     private var otherUserName: String {
         otherUser?.displayName ?? (didLoadUser ? String(localized: "Resonance User") : String(localized: "Chat"))
@@ -34,13 +43,32 @@ struct ChatView: View {
         }
         .navigationTitle(otherUserName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label(String(localized: "Report User"), systemImage: "exclamationmark.triangle")
+                    }
+
+                    Button(role: .destructive) {
+                        showBlockConfirmation = true
+                    } label: {
+                        Label(String(localized: "Block User"), systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel(String(localized: "More options"))
+                }
+            }
+        }
         .task {
             if viewModel == nil {
                 viewModel = ChatViewModel(chatService: services.chatService)
             }
 
-            // Load other user info
-            if let otherUserId = match.userIds.first(where: { $0 != currentUserId }) {
+            if let otherUserId {
                 do {
                     otherUser = try await services.userService.fetchUser(userId: otherUserId)
                 } catch {
@@ -68,6 +96,36 @@ struct ChatView: View {
             if let errorMessage = viewModel?.errorMessage {
                 Text(errorMessage)
             }
+        }
+        .sheet(isPresented: $showReportSheet) {
+            if let otherUserId {
+                ReportSheet(
+                    reportedUserId: otherUserId,
+                    contextType: .profile,
+                    currentUserId: currentUserId
+                )
+            }
+        }
+        .sheet(isPresented: $showMessageReportSheet) {
+            if let otherUserId, let reportMessageId {
+                ReportSheet(
+                    reportedUserId: otherUserId,
+                    contextType: .chatMessage,
+                    contextId: reportMessageId,
+                    currentUserId: currentUserId
+                )
+            }
+        }
+        .confirmationDialog(
+            String(localized: "Block \(otherUserName)?"),
+            isPresented: $showBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Block"), role: .destructive) {
+                Task { await blockUser() }
+            }
+        } message: {
+            Text(String(localized: "You won't see their messages or profile again."))
         }
     }
 
@@ -111,6 +169,10 @@ struct ChatView: View {
                                         messageId: messageId
                                     )
                                 }
+                            } : nil,
+                            onReport: !isOwn ? {
+                                reportMessageId = message.id
+                                showMessageReportSheet = true
                             } : nil
                         )
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
@@ -152,5 +214,20 @@ struct ChatView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+    }
+
+    // MARK: - Block User
+
+    private func blockUser() async {
+        guard let otherUserId else { return }
+        do {
+            try await services.moderationService.blockUser(
+                currentUserId: currentUserId,
+                blockedUserId: otherUserId
+            )
+            dismiss()
+        } catch {
+            viewModel?.errorMessage = error.localizedDescription
+        }
     }
 }

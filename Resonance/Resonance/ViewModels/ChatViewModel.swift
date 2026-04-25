@@ -17,6 +17,9 @@ final class ChatViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    /// Blocked user IDs — messages from these users are filtered out.
+    var blockedUserIds: Set<String> = []
+
     private let chatService: any ChatServiceProtocol
 
     // MARK: - Init
@@ -47,7 +50,9 @@ final class ChatViewModel {
     func listenForMessages(matchId: String, currentUserId: String? = nil) async {
         for await updatedMessages in chatService.messageChanges(matchId: matchId) {
             guard !Task.isCancelled else { return }
-            messages = updatedMessages
+            messages = blockedUserIds.isEmpty
+                ? updatedMessages
+                : updatedMessages.filter { !blockedUserIds.contains($0.senderId) }
 
             // Auto-mark messages as read when new messages from others arrive.
             // Use a detached Task so the mark-as-read actor hop doesn't block the

@@ -181,6 +181,9 @@ struct MainTabView: View {
                     userService: services.userService
                 )
             }
+            let blocked = authViewModel.currentUser?.blockedUserIds ?? []
+            discoveryViewModel?.blockedUserIds = blocked
+            matchViewModel?.blockedUserIds = blocked
 
             // Trigger historical matching periodically
             await runHistoricalMatching()
@@ -319,7 +322,16 @@ private struct MainTabContent: View {
                         UserProfileView(
                             user: user,
                             currentUserId: currentUserId,
-                            viewModel: discoveryViewModel
+                            viewModel: discoveryViewModel,
+                            onBlockUser: { blockedUserId in
+                                discoveryViewModel.blockedUserIds.append(blockedUserId)
+                                matchViewModel.blockedUserIds.append(blockedUserId)
+                                discoveryViewModel.listeningNowUsers.removeAll { $0.id == blockedUserId }
+                                discoveryViewModel.similarUsers.removeAll { $0.user.id == blockedUserId }
+                                matchViewModel.matches.removeAll { m in
+                                    m.userIds.contains(blockedUserId)
+                                }
+                            }
                         )
                     }
                 }
@@ -331,7 +343,14 @@ private struct MainTabContent: View {
                         .navigationDestination(for: Match.self) { match in
                             MatchDetailView(
                                 match: match,
-                                currentUserId: currentUserId
+                                currentUserId: currentUserId,
+                                onBlockUser: { blockedUserId in
+                                    matchViewModel.blockedUserIds.append(blockedUserId)
+                                    discoveryViewModel.blockedUserIds.append(blockedUserId)
+                                    matchViewModel.matches.removeAll { m in
+                                        m.userIds.contains(blockedUserId)
+                                    }
+                                }
                             )
                         }
                 }

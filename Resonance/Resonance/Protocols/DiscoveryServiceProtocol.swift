@@ -10,14 +10,14 @@ protocol DiscoveryServiceProtocol: Sendable {
 
     // MARK: - Discovery Queries
 
-    /// Fetches users currently listening to the same song (excluding self).
-    func fetchUsersListeningToSong(songId: String, currentUserId: String) async throws -> [ResonanceUser]
+    /// Fetches users currently listening to the same song (excluding self and blocked).
+    func fetchUsersListeningToSong(songId: String, currentUserId: String, blockedUserIds: [String]) async throws -> [ResonanceUser]
 
-    /// Fetches users currently listening to the same artist (excluding self).
-    func fetchUsersListeningToArtist(artistName: String, currentUserId: String) async throws -> [ResonanceUser]
+    /// Fetches users currently listening to the same artist (excluding self and blocked).
+    func fetchUsersListeningToArtist(artistName: String, currentUserId: String, blockedUserIds: [String]) async throws -> [ResonanceUser]
 
     /// Fetches users with high music taste similarity, sorted by score descending.
-    func fetchSimilarUsers(userId: String, limit: Int) async throws -> [(user: ResonanceUser, score: Double)]
+    func fetchSimilarUsers(userId: String, limit: Int, blockedUserIds: [String]) async throws -> [(user: ResonanceUser, score: Double)]
 
     // MARK: - Friend Requests
 

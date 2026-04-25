@@ -14,9 +14,13 @@ struct UserProfileView: View {
     let user: ResonanceUser
     let currentUserId: String
     @State var viewModel: DiscoveryViewModel
+    var onBlockUser: ((String) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.services) private var services
     @State private var isSending = false
+    @State private var showReportSheet = false
+    @State private var showBlockConfirmation = false
 
     // MARK: - Body
 
@@ -44,6 +48,58 @@ struct UserProfileView: View {
         }
         .navigationTitle(user.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label(String(localized: "Report User"), systemImage: "exclamationmark.triangle")
+                    }
+
+                    Button(role: .destructive) {
+                        showBlockConfirmation = true
+                    } label: {
+                        Label(String(localized: "Block User"), systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel(String(localized: "More options"))
+                }
+            }
+        }
+        .sheet(isPresented: $showReportSheet) {
+            if let userId = user.id {
+                ReportSheet(
+                    reportedUserId: userId,
+                    contextType: .profile,
+                    currentUserId: currentUserId
+                )
+            }
+        }
+        .confirmationDialog(
+            String(localized: "Block \(user.displayName)?"),
+            isPresented: $showBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Block"), role: .destructive) {
+                Task {
+                    guard let userId = user.id else { return }
+                    do {
+                        try await services.moderationService.blockUser(
+                            currentUserId: currentUserId,
+                            blockedUserId: userId
+                        )
+                        onBlockUser?(userId)
+                        dismiss()
+                    } catch {
+                        Log.moderation.error("Failed to block user: \(error.localizedDescription)")
+                    }
+                }
+            }
+        } message: {
+            Text(String(localized: "You won't see their messages or profile again."))
+        }
     }
 
     // MARK: - Profile Header

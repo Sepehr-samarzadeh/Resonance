@@ -12,11 +12,26 @@ struct MatchDetailView: View {
 
     let match: Match
     let currentUserId: String
+    var onBlockUser: ((String) -> Void)?
 
     @Environment(\.services) private var services
+    @Environment(\.dismiss) private var dismiss
     @State private var otherUser: ResonanceUser?
     @State private var didLoadUser = false
     @State private var chatViewModel: ChatViewModel?
+    @State private var showReportSheet = false
+    @State private var showBlockConfirmation = false
+    @State private var showMessageReportSheet = false
+    @State private var reportMessageId: String?
+    @State private var errorMessage: String?
+
+    private var otherUserId: String? {
+        match.userIds.first { $0 != currentUserId }
+    }
+
+    private var otherUserName: String {
+        otherUser?.displayName ?? (didLoadUser ? String(localized: "Resonance User") : String(localized: "Match"))
+    }
 
     // MARK: - Body
 
@@ -28,8 +43,83 @@ struct MatchDetailView: View {
                 ProgressView()
             }
         }
-        .navigationTitle(otherUser?.displayName ?? (didLoadUser ? String(localized: "Resonance User") : String(localized: "Match")))
+        .navigationTitle(otherUserName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label(String(localized: "Report User"), systemImage: "exclamationmark.triangle")
+                    }
+
+                    Button(role: .destructive) {
+                        showBlockConfirmation = true
+                    } label: {
+                        Label(String(localized: "Block User"), systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel(String(localized: "More options"))
+                }
+            }
+        }
+        .sheet(isPresented: $showReportSheet) {
+            if let otherUserId {
+                ReportSheet(
+                    reportedUserId: otherUserId,
+                    contextType: .profile,
+                    currentUserId: currentUserId
+                )
+            }
+        }
+        .sheet(isPresented: $showMessageReportSheet) {
+            if let otherUserId, let reportMessageId {
+                ReportSheet(
+                    reportedUserId: otherUserId,
+                    contextType: .chatMessage,
+                    contextId: reportMessageId,
+                    currentUserId: currentUserId
+                )
+            }
+        }
+        .confirmationDialog(
+            String(localized: "Block \(otherUserName)?"),
+            isPresented: $showBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Block"), role: .destructive) {
+                Task {
+                    guard let otherUserId else { return }
+                    do {
+                        try await services.moderationService.blockUser(
+                            currentUserId: currentUserId,
+                            blockedUserId: otherUserId
+                        )
+                        onBlockUser?(otherUserId)
+                        dismiss()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        } message: {
+            Text(String(localized: "You won't see their messages or profile again."))
+        }
+        .alert(
+            String(localized: "Error"),
+            isPresented: .init(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )
+        ) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
+            }
+        }
         .task {
             if chatViewModel == nil {
                 chatViewModel = ChatViewModel(chatService: services.chatService)
@@ -99,11 +189,29 @@ struct MatchDetailView: View {
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(chatViewModel.messages) { message in
-                        ChatBubble(message: message, isFromCurrentUser: message.senderId == currentUserId)
+                        let isOwn = message.senderId == currentUserId
+                        ChatBubble(
+                            message: message,
+                            isFromCurrentUser: isOwn,
+                            onDelete: isOwn ? {
+                                guard let messageId = message.id else { return }
+                                Task {
+                                    await chatViewModel.deleteMessage(
+                                        matchId: match.id ?? "",
+                                        messageId: messageId
+                                    )
+                                }
+                            } : nil,
+                            onReport: !isOwn ? {
+                                reportMessageId = message.id
+                                showMessageReportSheet = true
+                            } : nil
+                        )
                     }
                 }
                 .padding()
             }
+            .defaultScrollAnchor(.bottom)
 
             Divider()
 
@@ -147,6 +255,7 @@ struct ChatBubble: View {
     let message: Message
     let isFromCurrentUser: Bool
     var onDelete: (() -> Void)?
+    var onReport: (() -> Void)?
 
     var body: some View {
         HStack {
@@ -157,6 +266,11 @@ struct ChatBubble: View {
                     if let onDelete {
                         Button(role: .destructive, action: onDelete) {
                             Label(String(localized: "Delete"), systemImage: "trash")
+                        }
+                    }
+                    if !isFromCurrentUser, let onReport {
+                        Button(action: onReport) {
+                            Label(String(localized: "Report Message"), systemImage: "exclamationmark.bubble")
                         }
                     }
                 }

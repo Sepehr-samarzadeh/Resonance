@@ -194,9 +194,28 @@ final class MockUserService: UserServiceProtocol, @unchecked Sendable {
 
     var deleteAllUserDataCallCount = 0
     var stubbedDeleteAllUserDataError: Error?
+    var deleteUserDocumentCallCount = 0
+    var stubbedDeleteUserDocumentError: Error?
 
     func deleteAllUserData(userId: String) async throws {
         deleteAllUserDataCallCount += 1
         if let error = stubbedDeleteAllUserDataError { throw error }
+    }
+
+    func deleteUserDocument(userId: String) async throws {
+        deleteUserDocumentCallCount += 1
+        if let error = stubbedDeleteUserDocumentError { throw error }
+    }
+
+    // MARK: - Private Data
+
+    var fetchPrivateDataCallCount = 0
+    var stubbedFetchPrivateDataResult: PrivateUserData?
+    var stubbedFetchPrivateDataError: Error?
+
+    func fetchPrivateData(userId: String) async throws -> PrivateUserData? {
+        fetchPrivateDataCallCount += 1
+        if let error = stubbedFetchPrivateDataError { throw error }
+        return stubbedFetchPrivateDataResult
     }
 }

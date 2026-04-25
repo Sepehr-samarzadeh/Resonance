@@ -22,6 +22,7 @@ enum TestData {
         favoriteGenres: [String] = ["Pop", "Rock"],
         topArtists: [TopArtist] = [TopArtist(id: "artist-1", name: "Test Artist")],
         currentlyListening: CurrentlyListening? = nil,
+        blockedUserIds: [String] = [],
         deviceToken: String? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -40,6 +41,7 @@ enum TestData {
             favoriteGenres: favoriteGenres,
             topArtists: topArtists,
             currentlyListening: currentlyListening,
+            blockedUserIds: blockedUserIds,
             deviceToken: deviceToken,
             createdAt: createdAt,
             updatedAt: updatedAt

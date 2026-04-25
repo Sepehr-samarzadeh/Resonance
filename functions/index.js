@@ -289,9 +289,16 @@ export const onUserDeleted = onDocumentDeleted(
       console.log(`Deleted ${sessions.length} listening history sessions`);
     }
 
-    // 2. Delete private tokens subcollection
-    const privateDoc = db.collection("users").doc(userId).collection("private").doc("tokens");
-    await privateDoc.delete();
+    // 2. Delete private subcollection docs (tokens + profile)
+    const privateDocs = await db.collection("users").doc(userId).collection("private").listDocuments();
+    if (privateDocs.length > 0) {
+      const privateBatch = db.batch();
+      for (const doc of privateDocs) {
+        privateBatch.delete(doc);
+      }
+      await privateBatch.commit();
+      console.log(`Deleted ${privateDocs.length} private subcollection docs`);
+    }
 
     // 3. Delete all matches involving this user and their messages
     const matchesSnapshot = await db
@@ -348,7 +355,33 @@ export const onUserDeleted = onDocumentDeleted(
     }
     console.log(`Deleted ${allRequests.length} friend requests`);
 
-    // 5. Delete imported playlists subcollection
+    // 5. Delete reports filed by this user
+    const reportsByUser = await db
+      .collection("reports")
+      .where("reporterId", "==", userId)
+      .get();
+
+    if (reportsByUser.docs.length > 0) {
+      const chunks = [];
+      for (let i = 0; i < reportsByUser.docs.length; i += 490) {
+        chunks.push(reportsByUser.docs.slice(i, i + 490));
+      }
+      for (const chunk of chunks) {
+        const reportBatch = db.batch();
+        for (const doc of chunk) {
+          reportBatch.delete(doc.ref);
+        }
+        await reportBatch.commit();
+      }
+    }
+    console.log(`Deleted ${reportsByUser.docs.length} reports by user`);
+
+    // 6. blockedUserIds cleanup skipped — blocked lists are now stored in
+    //    users/{uid}/private/profile subcollections which cannot be efficiently
+    //    queried across all users. Stale blocked IDs are harmless (the blocked
+    //    user no longer exists) and will not affect app behavior.
+
+    // 7. Delete imported playlists subcollection
     const playlists = await db
       .collection("users")
       .doc(userId)

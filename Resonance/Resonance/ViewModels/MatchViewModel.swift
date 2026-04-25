@@ -19,6 +19,9 @@ final class MatchViewModel {
     var hasMoreMatches = true
     var errorMessage: String?
 
+    /// Blocked user IDs — matches involving these users are hidden.
+    var blockedUserIds: [String] = []
+
     private let matchService: any MatchServiceProtocol
     private let userService: any UserServiceProtocol
 
@@ -41,7 +44,7 @@ final class MatchViewModel {
 
         do {
             let fetched = try await matchService.fetchMatches(userId: userId, limit: pageSize, afterDate: nil)
-            matches = fetched
+            matches = filterBlocked(fetched)
             hasMoreMatches = fetched.count >= pageSize
         } catch {
             errorMessage = error.localizedDescription
@@ -59,7 +62,7 @@ final class MatchViewModel {
         do {
             let cursor = matches.last?.createdAt
             let fetched = try await matchService.fetchMatches(userId: userId, limit: pageSize, afterDate: cursor)
-            matches.append(contentsOf: fetched)
+            matches.append(contentsOf: filterBlocked(fetched))
             hasMoreMatches = fetched.count >= pageSize
         } catch {
             errorMessage = error.localizedDescription
@@ -74,7 +77,7 @@ final class MatchViewModel {
     func listenForMatches(userId: String) async {
         for await updatedMatches in matchService.matchChanges(userId: userId) {
             guard !Task.isCancelled else { return }
-            matches = updatedMatches
+            matches = filterBlocked(updatedMatches)
         }
     }
 
@@ -166,6 +169,17 @@ final class MatchViewModel {
         } catch {
             Log.user.error("Failed to fetch other user \(otherUserId): \(error.localizedDescription)")
             return nil
+        }
+    }
+
+    // MARK: - Blocked Filtering
+
+    /// Removes matches that involve any blocked user.
+    private func filterBlocked(_ matches: [Match]) -> [Match] {
+        guard !blockedUserIds.isEmpty else { return matches }
+        let blocked = Set(blockedUserIds)
+        return matches.filter { match in
+            !match.userIds.contains { blocked.contains($0) }
         }
     }
 }

@@ -80,4 +80,14 @@ protocol UserServiceProtocol: Sendable {
 
     /// Deletes all user data from Firestore (user document, listening history, imported playlists).
     func deleteAllUserData(userId: String) async throws
+
+    /// Deletes only the user document from Firestore.
+    /// Used after auth deletion — the `onUserDeleted` Cloud Function handles cascade cleanup.
+    func deleteUserDocument(userId: String) async throws
+
+    // MARK: - Private Data
+
+    /// Fetches the user's private data (email, blockedUserIds) from the private subcollection.
+    /// Only the owning user has Firestore read access to this document.
+    func fetchPrivateData(userId: String) async throws -> PrivateUserData?
 }
