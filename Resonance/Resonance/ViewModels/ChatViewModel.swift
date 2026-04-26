@@ -35,7 +35,10 @@ final class ChatViewModel {
         isLoading = true
 
         do {
-            messages = try await chatService.fetchMessages(matchId: matchId)
+            let fetched = try await chatService.fetchMessages(matchId: matchId)
+            messages = blockedUserIds.isEmpty
+                ? fetched
+                : fetched.filter { !blockedUserIds.contains($0.senderId) }
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -107,8 +107,11 @@ final class MatchViewModel {
     @discardableResult
     func checkForRealtimeMatch(userId: String, songId: String, songName: String, artistName: String) async -> Match? {
         do {
+            let blocked = Set(blockedUserIds)
+
             // Check by song
             let songMatchedUserIds = try await matchService.findUsersListeningToSong(songId: songId, currentUserId: userId)
+                .filter { !blocked.contains($0) }
 
             for matchedUserId in songMatchedUserIds {
                 // Deduplicate: skip if a match already exists between these users
@@ -132,6 +135,7 @@ final class MatchViewModel {
 
             // Check by artist
             let artistMatchedUserIds = try await matchService.findUsersListeningToArtist(artistName: artistName, currentUserId: userId)
+                .filter { !blocked.contains($0) }
 
             for matchedUserId in artistMatchedUserIds {
                 let existingMatch = try await matchService.findExistingMatch(userId1: userId, userId2: matchedUserId)

@@ -344,6 +344,7 @@ private struct MainTabContent: View {
                             MatchDetailView(
                                 match: match,
                                 currentUserId: currentUserId,
+                                blockedUserIds: Set(matchViewModel.blockedUserIds),
                                 onBlockUser: { blockedUserId in
                                     matchViewModel.blockedUserIds.append(blockedUserId)
                                     discoveryViewModel.blockedUserIds.append(blockedUserId)

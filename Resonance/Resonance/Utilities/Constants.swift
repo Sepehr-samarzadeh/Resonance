@@ -61,9 +61,8 @@ enum Constants {
     // MARK: - Legal
 
     enum Legal {
-        // TODO: Replace with actual URLs before App Store submission
-        static let privacyPolicyURL = URL(string: "https://resonance.app/privacy")!
-        static let termsOfServiceURL = URL(string: "https://resonance.app/terms")!
+        static let privacyPolicyURL = URL(string: "https://resonance-social.com/privacy")!
+        static let termsOfServiceURL = URL(string: "https://resonance-social.com/terms")!
     }
 
     // MARK: - Music Genres

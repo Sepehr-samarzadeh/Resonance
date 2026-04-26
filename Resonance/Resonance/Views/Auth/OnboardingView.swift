@@ -11,6 +11,7 @@ struct OnboardingView: View {
 
     // MARK: - Properties
 
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.services) private var services
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
@@ -50,8 +51,11 @@ struct OnboardingView: View {
                 }
                 .tag(3)
 
-                readyPage
+                notificationPage
                     .tag(4)
+
+                readyPage
+                    .tag(5)
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
@@ -190,6 +194,56 @@ struct OnboardingView: View {
         .task {
             musicAuthStatus = services.musicService.authorizationStatus
         }
+    }
+
+    // MARK: - Notification Page
+
+    private var notificationPage: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: largeIconSize))
+                .foregroundStyle(.musicRed)
+                .accessibilityHidden(true)
+
+            Text(String(localized: "Stay in the Loop"))
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+
+            Text(String(localized: "Get notified when someone matches with you or sends a message."))
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            Spacer()
+
+            Button {
+                appDelegate.requestNotificationPermission()
+                withAnimation { currentPage = 5 }
+            } label: {
+                Text(String(localized: "Enable Notifications"))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(.musicRed)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(.horizontal, 40)
+
+            Button {
+                withAnimation { currentPage = 5 }
+            } label: {
+                Text(String(localized: "Not Now"))
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.bottom, 40)
+        }
+        .padding()
     }
 
     // MARK: - Ready Page

@@ -12,6 +12,7 @@ struct MatchDetailView: View {
 
     let match: Match
     let currentUserId: String
+    var blockedUserIds: Set<String> = []
     var onBlockUser: ((String) -> Void)?
 
     @Environment(\.services) private var services
@@ -122,7 +123,9 @@ struct MatchDetailView: View {
         }
         .task {
             if chatViewModel == nil {
-                chatViewModel = ChatViewModel(chatService: services.chatService)
+                let vm = ChatViewModel(chatService: services.chatService)
+                vm.blockedUserIds = blockedUserIds
+                chatViewModel = vm
             }
 
             guard let otherUserId = match.userIds.first(where: { $0 != currentUserId }) else {

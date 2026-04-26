@@ -36,7 +36,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         // before this callback. Only set up notifications here.
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
-        registerForPushNotifications(application)
+
+        // Re-register for remote notifications if permission was previously granted
+        // (does NOT prompt the user)
+        Task { @MainActor in
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            if settings.authorizationStatus == .authorized {
+                application.registerForRemoteNotifications()
+            }
+        }
+
         return true
     }
 
@@ -68,14 +77,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, @unchecked Sendable {
         Log.notification.error("Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
-    // MARK: - Private
+    // MARK: - Notification Registration
 
-    private func registerForPushNotifications(_ application: UIApplication) {
+    /// Requests notification permission and registers for remote notifications.
+    /// Called after onboarding, not on launch.
+    func requestNotificationPermission() {
         Task { @MainActor in
             do {
                 let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
                 if granted {
-                    application.registerForRemoteNotifications()
+                    UIApplication.shared.registerForRemoteNotifications()
                 }
             } catch {
                 Log.notification.error("Notification authorization error: \(error.localizedDescription)")
